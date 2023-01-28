@@ -1,2 +1,5 @@
 node_modules
 config.json
+deployCommands.js
+deleteCommands.js
+json.sqlite
