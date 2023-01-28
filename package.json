@@ -1,0 +1,19 @@
+{
+  "name": "zekebot",
+  "version": "1.0.0",
+  "description": "A bot to do whatever I want it to",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Zekinler",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "better-sqlite3": "^8.0.1",
+    "discord.js": "^14.7.1",
+    "quick.db": "^9.0.8"
+  },
+  "devDependencies": {
+    "eslint": "^8.31.0"
+  }
+}
