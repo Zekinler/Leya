@@ -16,7 +16,7 @@ module.exports = {
 
 	async execute(interaction, db) {
 		if (!(interaction.memberPermissions.has('MANAGE_SERVER') || interaction.memberPermissions.has('ADMINISTRATOR'))) {
-			interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
+			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
 
@@ -74,6 +74,6 @@ module.exports = {
 		await db.set(`leveling.guilds.${interaction.guildId}.users.${userID}`, userInfo);
 
 
-		interaction.options.getNumber('amount') >= 0 ? interaction.reply(`Successfully gave ${interaction.options.getNumber('amount')} xp to ${interaction.options.getUser('user').username}`) : interaction.reply(`Successfully took ${interaction.options.getNumber('amount')} xp from ${interaction.options.getUser('user').username}`);
+		interaction.options.getNumber('amount') >= 0 ? await interaction.reply(`Successfully gave ${interaction.options.getNumber('amount')} xp to ${interaction.options.getUser('user').username}`) : await interaction.reply(`Successfully took ${interaction.options.getNumber('amount')} xp from ${interaction.options.getUser('user').username}`);
 	},
 };

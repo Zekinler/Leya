@@ -12,7 +12,7 @@ module.exports = {
 
 	async execute(interaction, db) {
 		if (!(interaction.memberPermissions.has('MANAGE_SERVER') || interaction.memberPermissions.has('ADMINISTRATOR'))) {
-			interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
+			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
 
@@ -28,6 +28,6 @@ module.exports = {
 
 		await db.set(`leveling.guilds.${interaction.guildId}.users.${interaction.options.getUser('user').id}`, userInfo);
 
-		interaction.reply(`Successfully reset ${interaction.options.getUser('user').username}'s xp`);
+		await interaction.reply(`Successfully reset ${interaction.options.getUser('user').username}'s xp`);
 	},
 };

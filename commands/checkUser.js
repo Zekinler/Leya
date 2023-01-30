@@ -27,6 +27,6 @@ module.exports = {
 				{ name: 'XP:', value:`${userInfo.xp}`, inline: true },
 			);
 
-		interaction.reply({ embeds: [embed] });
+		await interaction.reply({ embeds: [embed] });
 	},
 };

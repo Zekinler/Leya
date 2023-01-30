@@ -10,7 +10,7 @@ module.exports = {
 				.setDescription('View the current configuration of the spam settings'))
 		.addSubcommand(subcommand =>
 			subcommand
-				.setName('set-timespan-of-spam')
+				.setName('set-shortest-message-duration')
 				.setDescription('Set the amount of time (In seconds) wherein if x messages are sent, it is considered spam')
 				.addNumberOption(option =>
 					option
@@ -30,7 +30,7 @@ module.exports = {
 						.setRequired(true)))
 		.addSubcommand(subcommand =>
 			subcommand
-				.setName('set-message-count-of-spam')
+				.setName('set-max-message-count')
 				.setDescription('Set the amount messages considered spam if sent within the timespan considered spam')
 				.addIntegerOption(option =>
 					option
@@ -41,7 +41,7 @@ module.exports = {
 
 	async execute(interaction, db) {
 		if (!(interaction.memberPermissions.has('MANAGE_SERVER') || interaction.memberPermissions.has('ADMINISTRATOR'))) {
-			interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
+			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
 
@@ -53,27 +53,27 @@ module.exports = {
 				.setColor(0x0099FF)
 				.setTitle('XP Spam Settings:')
 				.addFields(
-					{ name: 'Timespam of Spam:', value:`${guildSettings.timespanOfSuccession}` },
+					{ name: 'Shortest Message Duration:', value:`${guildSettings.timespanOfSuccession}` },
 					{ name: 'Spam Penalty Duration:', value: `${guildSettings.spamProtectionTime}` },
-					{ name: 'Message Count of Spam:', value: `${guildSettings.allowedMessagesInSuccession}` },
+					{ name: 'Max Message Count:', value: `${guildSettings.allowedMessagesInSuccession}` },
 				);
 
-			interaction.reply({ embeds: [embed] });
+			await interaction.reply({ embeds: [embed] });
 			break;
 		}
-		case 'set-timespan-of-spam': {
+		case 'set-shortest-message-duration': {
 			guildSettings.timespanOfSuccession = interaction.options.getNumber('amount');
-			interaction.reply(`Successfully set the timespan of spam to ${guildSettings.timespanOfSuccession}`);
+			await interaction.reply(`Successfully set the shortest message duration to ${guildSettings.timespanOfSuccession}`);
 			break;
 		}
 		case 'set-spam-penalty-duration': {
 			guildSettings.spamProtectionTime = interaction.options.getNumber('amount');
-			interaction.reply(`Successfully set the spam penalty duration to ${guildSettings.spamProtectionTime}`);
+			await interaction.reply(`Successfully set the spam penalty duration to ${guildSettings.spamProtectionTime}`);
 			break;
 		}
-		case 'set-message-count-of-spam': {
+		case 'set-max-message-count': {
 			guildSettings.allowedMessagesInSuccession = interaction.options.getInteger('amount');
-			interaction.reply(`Successfully set the message count of spam to ${guildSettings.allowedMessagesInSuccession}`);
+			await interaction.reply(`Successfully set the max message count to ${guildSettings.allowedMessagesInSuccession}`);
 			break;
 		}
 		}

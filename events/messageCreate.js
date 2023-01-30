@@ -3,107 +3,104 @@ const { Events, EmbedBuilder } = require('discord.js');
 module.exports = {
 	name: Events.MessageCreate,
 	async execute(message, db) {
-		if (message.content.includes('https://scratch.mit.edu/projects/')) {
-			await this.getScratchProject(message);
-		}
-		else if (message.content.includes('https://scratch.mit.edu/users/')) {
-			await this.getScratchUser(message);
-		}
-		else if (message.content.includes('https://scratch.mit.edu/studios/')) {
-			await this.getScratchStudio(message);
-		}
+		if (message.content.includes('https://scratch.mit.edu/projects/')) this.getScratchProject(message);
+		if (message.content.includes('https://scratch.mit.edu/users/')) this.getScratchUser(message);
+		if (message.content.includes('https://scratch.mit.edu/studios/')) this.getScratchStudio(message);
 
-		await this.leveling(message, db);
+		this.leveling(message, db);
 	},
 
-	async leveling(message, db) {
+	leveling(message, db) {
 		if (message.author.bot) return;
 
-		if (!await db.has(`leveling.guilds.${message.guild.id}`)) {
-			// If the database doesn't contain an entry for this guild, add one, with settings and users objects
-			await db.set(`leveling.guilds.${message.guild.id}`, { settings: await db.get('leveling.defaultSettings'), users: {} });
-		}
-		if (!await db.has(`leveling.guilds.${message.guild.id}.users.${message.author.id}`)) {
-			// If the guild's users object in the database doesn't contain a property for this user, add one, with xp and level properties
-			await db.set(`leveling.guilds.${message.guild.id}.users.${message.author.id}`, { xp: 0, level: 0, beginningMessageTimestamp: 0, messagesInSuccession: 0 });
-		}
+		const levelsTable = db.table('levels');
 
-		const guildSettings = await db.get(`leveling.guilds.${message.guild.id}.settings`);
-		const userInfo = await db.get(`leveling.guilds.${message.guild.id}.users.${message.author.id}`);
+		const indexOfGuild = levelsTable.get('guilds')
+			.then((levelsGuilds) =>
+				levelsGuilds.findIndex((levelsGuild) => message.member.guild.id === levelsGuild.id));
+		const indexOfMember = levelsTable.get(`guild[${indexOfGuild}].members`)
+			.then((levelsMembers) =>
+				levelsMembers.findIndex((levelsMember) => message.member.id === levelsMember.id));
 
-		if (userInfo.messagesInSuccession >= guildSettings.allowedMessagesInSuccession) {
-			if (Date.now() - userInfo.beginningMessageTimestamp <= guildSettings.spamProtectionTime * 1000) {
-				await db.set(`leveling.guilds.${message.guild.id}.users.${message.author.id}`, userInfo);
+		const levelsGuildSettings = levelsTable.get(`guilds[${indexOfGuild}].settings`);
+		const levelsMember = levelsTable.get(`guilds[${indexOfGuild}].members[${indexOfMember}]`);
+
+		if (levelsMember.messagesSent >= levelsGuildSettings.maxMessageCount) {
+			if (Date.now() - levelsMember.sentenceBeginTimestamp <= levelsGuildSettings.spamPenaltyDuration * 1000) {
 				return;
 			}
 			else {
-				userInfo.messagesInSuccession = 0;
-				userInfo.beginningMessageTimestamp = 0;
+				levelsMember.messagesSent = 0;
+				levelsMember.sentenceBeginTimestamp = 0;
 			}
 		}
 
-		if (Date.now() - userInfo.beginningMessageTimestamp <= guildSettings.timespanOfSuccession * 1000) {
-			userInfo.messagesInSuccession++;
+		if (Date.now() - levelsMember.sentenceBeginTimestamp <= levelsGuildSettings.shortestMessageDuration * 1000) {
+			levelsMember.messagesSent++;
 		}
 		else {
-			userInfo.messagesInSuccession = 0;
-			userInfo.beginningMessageTimestamp = message.createdTimestamp;
+			levelsMember.messagesSent = 0;
+			levelsMember.sentenceBeginTimestamp = message.createdTimestamp;
 		}
 
-		if (userInfo.messagesInSuccession >= guildSettings.allowedMessagesInSuccession) {
-			userInfo.beginningMessageTimestamp = message.createdTimestamp;
-			await db.set(`leveling.guilds.${message.guild.id}.users.${message.author.id}`, userInfo);
+		if (levelsMember.messagesSent >= levelsGuildSettings.maxMessageCount) {
+			levelsMember.sentenceBeginTimestamp = message.createdTimestamp;
+			levelsTable.set(`guilds[${indexOfGuild}].members[${indexOfMember}]`, levelsMember);
 			return;
 		}
 
-		userInfo.xp += guildSettings.xpForMessage;
+		levelsMember.xp += levelsGuildSettings.xpRate;
 
-		let levelUpThreshold = guildSettings.baseLevelUpThreshold * (1 + userInfo.level * guildSettings.levelUpThresholdMultiplier);
+		let levelUpThreshold = levelsGuildSettings.levelUpThreshold * (1 + levelsMember.level * levelsGuildSettings.levelUpScaling);
 
-		if (userInfo.xp < levelUpThreshold) {
-			await db.set(`leveling.guilds.${message.guild.id}.users.${message.author.id}`, userInfo);
+		if (levelsMember.xp < levelUpThreshold) {
+			levelsTable.set(`guilds[${indexOfGuild}].members[${indexOfMember}]`, levelsMember);
 			return;
 		}
 
-		while (userInfo.xp >= levelUpThreshold) {
-			userInfo.xp -= levelUpThreshold;
-			userInfo.level++;
-			levelUpThreshold = guildSettings.baseLevelUpThreshold * (1 + userInfo.level * guildSettings.levelUpThresholdMultiplier);
+		while (levelsMember.xp >= levelUpThreshold) {
+			levelsMember.xp -= levelUpThreshold;
+			levelsMember.level++;
+			levelUpThreshold = levelsGuildSettings.levelUpThreshold * (1 + levelsMember.level * levelsGuildSettings.levelUpScaling);
 		}
 
-		if (guildSettings.levelUpAnnouncementChannel !== null) {
-			message.guild.channels.fetch(guildSettings.levelUpAnnouncementChannel)
-				.then(channel => channel.send(`Congrats, <@${message.author.id}>, you've leveled up to level ${userInfo.level}!`));
+		levelsTable.set(`guilds[${indexOfGuild}].members[${indexOfMember}]`, levelsMember);
+
+		if (levelsGuildSettings.levelUpMessageChannel === null) {
+			message.reply(`Congrats, you've leveled up to level ${levelsMember.level}!`);
 		}
 		else {
-			message.reply(`Congrats, you've leveled up to level ${userInfo.level}!`);
+			message.guild.channels.fetch(levelsGuildSettings.levelUpMessageChannel)
+				.then((channel) => channel.send(`Congrats, <@${message.author.id}>, you've leveled up to level ${levelsMember.level}!`));
 		}
 
 		let highestRole = null;
 		const rolesToRemove = [];
 
-		guildSettings.levelRoles.forEach(levelRole => {
-			if (message.member.roles.cache.has(levelRole.role)) { // Check for roles the user already has
-				rolesToRemove.push(levelRole.role); // Queue them for removal if necessary later
+		for (const rewardRole in levelsGuildSettings.rewardRoles) {
+			if (message.member.roles.cache.has(rewardRole.id)) {
+				rolesToRemove.push(rewardRole.role); // Queue each reward role the member has for later removal if necessary
 			}
-			else if (userInfo.level >= levelRole.level) { // Check for the highest level role that applies to the user
-				highestRole = levelRole.role;
+			else if (levelsMember.level >= rewardRole.level) { // Check for the highest level role that applies to the user
+				highestRole = rewardRole.id;
 			}
-		});
+		}
+
 		if (highestRole === null) {
 			// If it couldn't find the highest applicable level role,
 			// then the user must already have the highest role, and thus that role mustn't be removed from the user
 			rolesToRemove.pop();
 		}
 		else {
-			message.member.roles.add(highestRole, `Leveled up to level ${userInfo.level}`);
+			message.member.roles.add(highestRole, `Leveled up to level ${levelsMember.level}`);
 		}
-		rolesToRemove.forEach(role => message.member.roles.remove(role, 'Level role is lesser than the highest level role that the user has'));
 
-		await db.set(`leveling.guilds.${message.guild.id}.users.${message.author.id}`, userInfo);
+		for (const role in rolesToRemove) {
+			message.member.roles.remove(role, 'Role is lesser than the highest reward role that the user has');
+		}
 	},
 
-	async getScratchProject(message) {
+	getScratchProject(message) {
 		let projectID = '';
 		for (
 			let i = message.content.indexOf('https://scratch.mit.edu/projects/') + 33; // Let i be one character after the final character in the link
@@ -118,12 +115,11 @@ module.exports = {
 		}
 		if (projectID == '') return;
 
-		await fetch(`https://api.scratch.mit.edu/projects/${projectID}/`)
+		fetch(`https://api.scratch.mit.edu/projects/${projectID}/`)
 			.then((response) => response.json())
-			.then((json) => {
-				if (json.code === 'NotFound') return;
+			.then((projectInfo) => {
+				if (projectInfo.code === 'NotFound') return;
 
-				const projectInfo = json;
 				const projectDescription = projectInfo.description.trim().length > 0 ? projectInfo.description.trim() : 'No description available';
 				const projectInstructions = projectInfo.instructions.trim().length > 0 ? projectInfo.instructions.trim() : 'No instructions available';
 
@@ -147,8 +143,8 @@ module.exports = {
 			});
 	},
 
-	async getScratchUser(message) {
-		let studioID = '';
+	getScratchUser(message) {
+		let username = '';
 		for (
 			let i = message.content.indexOf('https://scratch.mit.edu/users/') + 30; // let i be one character after the final character in the link
 			i < message.content.length &&
@@ -158,38 +154,37 @@ module.exports = {
 			message.content.charAt(i) !== '/';
 			i++
 		) {
-			studioID = studioID.concat(message.content.charAt(i));
+			username = username.concat(message.content.charAt(i));
 		}
-		if (studioID == '') return;
+		if (username == '') return;
 
-		await fetch(`https://api.scratch.mit.edu/users/${studioID}/`)
+		fetch(`https://api.scratch.mit.edu/users/${username}/`)
 			.then((response) => response.json())
-			.then((json) => {
-				if (json.code === 'NotFound') return;
+			.then((levelsMember) => {
+				if (levelsMember.code === 'NotFound') return;
 
-				const userInfo = json;
-				const userBio = userInfo.profile.bio.trim().length > 0 ? userInfo.profile.bio.trim() : 'No about me available';
-				const userStatus = userInfo.profile.status.trim().length > 0 ? userInfo.profile.status.trim() : 'No what I\'m working on available';
+				const userBio = levelsMember.profile.bio.trim().length > 0 ? levelsMember.profile.bio.trim() : 'No about me available';
+				const userStatus = levelsMember.profile.status.trim().length > 0 ? levelsMember.profile.status.trim() : 'No what I\'m working on available';
 
 				const userEmbed = new EmbedBuilder()
 					.setColor(0x0099FF)
-					.setTitle(studioID)
-					.setURL(`https://scratch.mit.edu/users/${studioID}/`)
-					.setAuthor({ name: studioID, iconURL: userInfo.profile.images['90x90'], url: `https://scratch.mit.edu/users/${studioID}/` })
+					.setTitle(username)
+					.setURL(`https://scratch.mit.edu/users/${username}/`)
+					.setAuthor({ name: username, iconURL: levelsMember.profile.images['90x90'], url: `https://scratch.mit.edu/users/${username}/` })
 					.setDescription(userBio)
-					.setThumbnail(userInfo.profile.images['90x90'])
+					.setThumbnail(levelsMember.profile.images['90x90'])
 					.addFields(
 						{ name: 'What I\'m working on:', value: userStatus },
-						{ name: 'Joined on:', value: `${userInfo.history.joined.substring(0, 10)}` },
-						{ name: 'Country:', value: userInfo.profile.country },
+						{ name: 'Joined on:', value: `${levelsMember.history.joined.substring(0, 10)}` },
+						{ name: 'Country:', value: levelsMember.profile.country },
 					);
-				if (userInfo.scratchteam) userEmbed.addFields({ name: 'A Scratch Team Member', value: '\u200B' });
+				if (levelsMember.scratchteam) userEmbed.addFields({ name: 'A Scratch Team Member', value: '\u200B' });
 
 				message.reply({ embeds: [userEmbed] });
 			});
 	},
 
-	async getScratchStudio(message) {
+	getScratchStudio(message) {
 		let studioID = '';
 		for (
 			let i = message.content.indexOf('https://scratch.mit.edu/studios/') + 32; // let i be one character after the final character in the link
@@ -204,14 +199,13 @@ module.exports = {
 		}
 		if (studioID == '') return;
 
-		await fetch(`https://api.scratch.mit.edu/studios/${studioID}/`)
+		fetch(`https://api.scratch.mit.edu/studios/${studioID}/`)
 			.then((response) => response.json())
-			.then((json) => {
-				if (json.code === 'NotFound') return;
+			.then((studioInfo) => {
+				if (studioInfo.code === 'NotFound') return;
 
-				const studioInfo = json;
 				let studioDescription = studioInfo.description.trim().length > 0 ? studioInfo.description.trim() : 'No description available';
-				if (studioDescription.length > 400) studioDescription = studioDescription.substring(0, 397).trim() + '...';
+				if (studioDescription.length > 400) studioDescription = studioDescription.substring(0, 400).trim() + '...';
 
 				const studioEmbed = new EmbedBuilder()
 					.setColor(0x0099FF)

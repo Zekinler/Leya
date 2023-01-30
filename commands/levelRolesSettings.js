@@ -39,7 +39,7 @@ module.exports = {
 
 	async execute(interaction, db) {
 		if (!(interaction.memberPermissions.has('MANAGE_SERVER') || interaction.memberPermissions.has('ADMINISTRATOR'))) {
-			interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
+			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
 
@@ -60,36 +60,36 @@ module.exports = {
 				embed.setDescription('There are no level roles on this server');
 			}
 
-			interaction.reply({ embeds: [embed] });
+			await interaction.reply({ embeds: [embed] });
 			break;
 		}
 		case 'add-level-role': {
 			const levelRoleIndex = guildSettings.levelRoles.findIndex(levelRole => levelRole.level == interaction.options.getInteger('level'));
 			if (levelRoleIndex != -1) {
-				interaction.reply(`There is already a level role for level ${interaction.options.getInteger('level')}`);
+				await interaction.reply(`There is already a level role for level ${interaction.options.getInteger('level')}`);
 				break;
 			}
 
 			guildSettings.levelRoles.push({ level: interaction.options.getInteger('level'), role: interaction.options.getRole('role').id });
-			interaction.reply(`Successfully added the level role for level ${interaction.options.getInteger('level')}`);
+			await interaction.reply(`Successfully added the level role for level ${interaction.options.getInteger('level')}`);
 			break;
 		}
 		case 'remove-level-role': {
 			const levelRoleIndex = guildSettings.levelRoles.findIndex(levelRole => levelRole.level == interaction.options.getInteger('level'));
 			if (levelRoleIndex == -1) {
-				interaction.reply(`There is no level role for level ${interaction.options.getInteger('level')}`);
+				await interaction.reply(`There is no level role for level ${interaction.options.getInteger('level')}`);
 				break;
 			}
 
 			interaction.guild.members.cache.forEach(member => member.roles.remove(guildSettings.levelRoles[levelRoleIndex].role, 'Level role removed'));
 			guildSettings.levelRoles.splice(levelRoleIndex, 1);
-			interaction.reply(`Successfully removed the level role for level ${interaction.options.getInteger('level')}`);
+			await interaction.reply(`Successfully removed the level role for level ${interaction.options.getInteger('level')}`);
 			break;
 		}
 		case 'remove-all-level-roles': {
 			interaction.guild.members.cache.forEach(member => guildSettings.levelRoles.forEach(levelRole => member.roles.remove(levelRole.role, 'Level role removed')));
 			guildSettings.levelRoles = [];
-			interaction.reply('Successfully removed all level roles');
+			await interaction.reply('Successfully removed all level roles');
 			break;
 		}
 		}
