@@ -1,14 +1,12 @@
 const { Events } = require('discord.js');
+const { GetIndexOfLevelsGuild } = require('../levels');
 
 module.exports = {
 	name: Events.GuildDelete,
 	async execute(guild, db) {
-		const levelsTable = db.table('levels');
+		const levels = db.table('levels');
 
-		const indexOfGuild = levelsTable.get('guilds')
-			.then((levelsGuilds) =>
-				levelsGuilds.findIndex((levelsGuild) => guild.id === levelsGuild.id));
-
-		levelsTable.delete(`guilds[${indexOfGuild}]`);
+		const indexOfLevelsGuild = await GetIndexOfLevelsGuild(levels, guild.id);
+		await levels.delete(`guilds.${indexOfLevelsGuild}`);
 	},
 };

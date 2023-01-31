@@ -1,18 +1,19 @@
 const { SlashCommandBuilder } = require('discord.js');
+const { GetIndexOfLevelsGuild, GetIndexOfLevelsMember } = require('../levels');
 
 module.exports = {
 	data: new SlashCommandBuilder()
-		.setName('give-xp')
-		.setDescription('Give or take xp to a user')
-		.addNumberOption(option =>
+		.setName('givexp')
+		.setDescription('Give or take xp to/from a member')
+		.addIntegerOption(option =>
 			option
 				.setName('amount')
-				.setDescription('The amount to give/take (positive/negative)')
+				.setDescription('The amount to give (positive)/take (negative)')
 				.setRequired(true))
 		.addUserOption(option =>
 			option
-				.setName('user')
-				.setDescription('User to give to/take from (leave blank to affect yourself)')),
+				.setName('target')
+				.setDescription('The member to give to/take from (leave blank to target yourself)')),
 
 	async execute(interaction, db) {
 		if (!(interaction.memberPermissions.has('MANAGE_SERVER') || interaction.memberPermissions.has('ADMINISTRATOR'))) {
@@ -20,60 +21,90 @@ module.exports = {
 			return;
 		}
 
-		const userID = interaction.options.getUser('user') === null ? interaction.user.id : interaction.options.getUser('user').id;
-		if (!await db.has(`leveling.guilds.${interaction.guildId}.users.${userID}`)) {
-			// If the guild's users object in the database doesn't contain a property for this user, add one, with xp and level properties
-			await db.set(`leveling.guilds.${interaction.guildId}.users.${userID}`, { xp: 0, level: 0, beginningMessageTimestamp: 0, messagesInSuccession: 0 });
-		}
-
-		const guildSettings = await db.get(`leveling.guilds.${interaction.guildId}.settings`);
-		const userInfo = await db.get(`leveling.guilds.${interaction.guildId}.users.${userID}`);
-
-		userInfo.xp += interaction.options.getNumber('amount');
-
-		let levelUpThreshold = guildSettings.baseLevelUpThreshold * (1 + userInfo.level * guildSettings.levelUpThresholdMultiplier);
-
-		if (userInfo.xp >= 0 && userInfo.xp < levelUpThreshold) {
-			await db.set(`leveling.guilds.${interaction.guildId}.users.${userID}`, userInfo);
+		if (interaction.options.getInteger('amount') === 0) {
+			await interaction.reply({ content: 'You cannot give 0 xp', ephemeral: true });
 			return;
 		}
 
-		while (userInfo.xp < 0) {
-			userInfo.level--;
-			levelUpThreshold = guildSettings.baseLevelUpThreshold * (1 + userInfo.level * guildSettings.levelUpThresholdMultiplier);
-			userInfo.xp += levelUpThreshold;
+		if (interaction.options.getUser('target').user.bot) {
+			await interaction.reply({ content: 'Bots don\'t have levels', ephemeral: true });
+			return;
 		}
 
-		while (userInfo.xp >= levelUpThreshold) {
-			userInfo.xp -= levelUpThreshold;
-			userInfo.level++;
-			levelUpThreshold = guildSettings.baseLevelUpThreshold * (1 + userInfo.level * guildSettings.levelUpThresholdMultiplier);
+		const levels = db.table('levels');
+
+		const indexOfLevelsGuild = await GetIndexOfLevelsGuild(levels, interaction.guildId);
+		const levelsGuildSettings = await levels.get(`guilds.${indexOfLevelsGuild}.settings`);
+
+		if (!levelsGuildSettings.enabled) {
+			await interaction.reply({ content: 'Levels are disabled on this server', ephemeral: true });
+			return;
 		}
 
-		let highestRole = null;
+		const member = interaction.options.getUser('target') === null ? interaction.member : interaction.options.getUser('target');
+		const indexOfLevelsMember = await GetIndexOfLevelsMember(levels, indexOfLevelsGuild, member.id);
+
+		const levelsMember = await levels.get(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`);
+
+		if (!levelsMember.optIn) {
+			await interaction.reply({ content: 'This member has opted out of levels', ephemeral: true });
+			return;
+		}
+
+		levelsMember.xp += interaction.options.getInteger('amount');
+
+		let levelUpThreshold = levelsGuildSettings.levelUpThreshold + (levelsMember.level * levelsGuildSettings.levelUpScaling);
+
+		if (levelsMember.xp >= 0 && levelsMember.xp < levelUpThreshold) {
+			await levels.set(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`, levelsMember);
+			return;
+		}
+
+		while (levelsMember.xp < 0) {
+			levelsMember.level--;
+			levelUpThreshold = levelsGuildSettings.levelUpThreshold + (levelsMember.level * levelsGuildSettings.levelUpScaling);
+			levelsMember.xp += levelUpThreshold;
+		}
+
+		while (levelsMember.xp >= levelUpThreshold) {
+			levelsMember.level++;
+			levelsMember.xp -= levelUpThreshold;
+			levelUpThreshold = levelsGuildSettings.levelUpThreshold + (levelsMember.level * levelsGuildSettings.levelUpScaling);
+		}
+
+		await levels.set(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`, levelsMember);
+
+		let highestRoles = [];
 		const rolesToRemove = [];
 
-		guildSettings.levelRoles.forEach(levelRole => {
-			if (interaction.member.roles.cache.has(levelRole.role)) { // Check for roles the user already has
-				rolesToRemove.push(levelRole.role); // Queue them for removal if necessary later
+		for (const rewardRole in levelsGuildSettings.rewardRoles) {
+			for (const roleId in rewardRole.roleIds) {
+				if (member.roles.cache.has(roleId)) {
+					if (levelsMember.level < rewardRole.level) rolesToRemove.push(roleId); // Queue each reward role the member has for later removal if necessary
+				}
+				else if (levelsMember.level >= rewardRole.level) { // Check for the highest reward roles that applies to the member
+					highestRoles = rewardRole.roleIds;
+				}
 			}
-			else if (userInfo.level >= levelRole.level) { // Check for the highest level role that applies to the user
-				highestRole = levelRole.role;
-			}
-		});
-		if (highestRole === null) {
-			// If it couldn't find the highest applicable level role,
-			// then the user must already have the highest role, and thus that role mustn't be removed from the user
-			rolesToRemove.pop();
+		}
+
+		if (highestRoles !== []) {
+			await member.roles.add(highestRoles, `Leveled up to level ${levelsMember.level}`);
+		}
+
+		for (const role in rolesToRemove) {
+			await member.roles.remove(role, 'Role is of a lesser level than the highest reward roles that the user has');
+		}
+
+		if (levelsGuildSettings.levelUpMessageChannel === null) {
+			const levelUpMessageChannel = await interaction.guild.channels.fetch(levelsMember.lastMessageSentChannelId);
+			await levelUpMessageChannel.send(`Congrats, <@${interaction.options.getUser('target').id}>, you've leveled up to level ${levelsMember.level}!`);
 		}
 		else {
-			interaction.member.roles.add(highestRole, `Leveled up/down to level ${userInfo.level}`);
+			const levelUpMessageChannel = await interaction.guild.channels.fetch(levelsGuildSettings.levelUpMessageChannel);
+			await levelUpMessageChannel.send(`Congrats, <@${interaction.options.getUser('target').id}>, you've leveled up to level ${levelsMember.level}!`);
 		}
-		rolesToRemove.forEach(role => interaction.member.roles.remove(role, 'Level role is lesser than the highest level role that the user has'));
 
-		await db.set(`leveling.guilds.${interaction.guildId}.users.${userID}`, userInfo);
-
-
-		interaction.options.getNumber('amount') >= 0 ? await interaction.reply(`Successfully gave ${interaction.options.getNumber('amount')} xp to ${interaction.options.getUser('user').username}`) : await interaction.reply(`Successfully took ${interaction.options.getNumber('amount')} xp from ${interaction.options.getUser('user').username}`);
+		interaction.options.getInteger('amount') > 0 ? await interaction.reply(`Successfully gave ${interaction.options.getInteger('amount')} xp to ${interaction.options.getUser('target').username}`) : await interaction.reply(`Successfully took ${interaction.options.getInteger('amount')} xp from ${interaction.options.getUser('target').username}`);
 	},
 };

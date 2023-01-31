@@ -1,4 +1,5 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { GetIndexOfLevelsGuild } = require('../levels');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -6,12 +7,17 @@ module.exports = {
 		.setDescription('Get a leaderboard of the server'),
 
 	async execute(interaction, db) {
-		const users = await db.get(`leveling.guilds.${interaction.guildId}.users`);
-		let usersArray = [];
-		Object.values(users).forEach((user, i) => {
-			user.id = Object.keys(users)[i];
-			usersArray.push(user);
-		});
+		const levels = db.table('levels');
+
+		const indexOfLevelsGuild = await GetIndexOfLevelsGuild(levels, interaction.guildId);
+		const levelsGuildSettings = await levels.get(`guilds.${indexOfLevelsGuild}.settings`);
+
+		if (!levelsGuildSettings.enabled) {
+			await interaction.reply({ content: 'Levels are disabled on this server', ephemeral: true });
+			return;
+		}
+
+		let levelsMembers = await levels.get(`guilds.${indexOfLevelsGuild}.members`);
 
 		const embed = new EmbedBuilder()
 			.setColor(0x0099FF)
@@ -19,22 +25,27 @@ module.exports = {
 			.setDescription('Leaderboard:')
 			.setThumbnail(`https://cdn.discordapp.com/icons/${interaction.guild.id}/${interaction.guild.icon}`);
 
-		usersArray = usersArray.sort((a, b) => (a.level < b.level || (a.level == b.level && a.xp < b.xp)) ? 1 : -1);
+		levelsMembers = levelsMembers.filter((levelsMember) => levelsMember.optIn);
+		levelsMembers = levelsMembers.sort((a, b) => (a.level < b.level || (a.level === b.level && a.xp < b.xp)) ? 1 : -1);
 
-		for (let i = 0; i < usersArray.length; i++) {
-			if (i < 10) {
-				const fetchedUser = await interaction.guild.members.fetch(usersArray[i].id);
-				embed.addFields({ name: `${i + 1}. ${fetchedUser.user.username}`, value: `Level: ${usersArray[i].level} XP: ${usersArray[i].xp}` });
+		const indexOfInteractionMember = levelsMembers.findIndex((levelsMember) => levelsMember.id === interaction.member.id);
+
+		for (let i = 0; i < 10; i++) {
+			if (levelsMembers[i].id === interaction.member.id) {
+				embed.addFields({ name: `${i + 1}. ${interaction.user.username}`, value: `Level: ${levelsMembers[i].level}, XP: ${levelsMembers[i].xp}` });
 			}
-			else if (usersArray[i].id == interaction.user.id) {
-				embed.addFields({ name: `${i + 1}. ${interaction.user.username}`, value: `Level: ${usersArray[i].level} XP: ${usersArray[i].xp}` });
+			else {
+				const fetchedMember = await interaction.guild.members.fetch(levelsMembers[i].id);
+				embed.addFields({ name: `${i + 1}. ${fetchedMember.user.username}`, value: `Level: ${levelsMembers[i].level}, XP: ${levelsMembers[i].xp}` });
 			}
 		}
+
+		if (indexOfInteractionMember > 9) embed.addFields({ name: `${indexOfInteractionMember + 1}. ${interaction.user.username}`, value: `Level: ${levelsMembers[indexOfInteractionMember].level}, XP: ${levelsMembers[indexOfInteractionMember].xp}` });
 
 		const row = new ActionRowBuilder()
 			.addComponents(
 				new ButtonBuilder()
-					.setCustomId('dm-user-full-leaderboard')
+					.setCustomId('dmleaderboard')
 					.setLabel('Get DM of full leaderboard')
 					.setStyle(ButtonStyle.Primary),
 			);

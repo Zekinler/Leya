@@ -7,6 +7,6 @@ module.exports = {
 
 	async execute(interaction) {
 		const sent = await interaction.reply({ content: 'Pinging...', fetchReply: true });
-		interaction.editReply(`Pong! ${sent.createdTimestamp - interaction.createdTimestamp}ms`);
+		await interaction.editReply(`Pong! ${sent.createdTimestamp - interaction.createdTimestamp}ms`);
 	},
 };

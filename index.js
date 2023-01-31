@@ -4,7 +4,6 @@ const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const token = process.argv[2];
 const { QuickDB } = require('quick.db');
 const db = new QuickDB();
-const { InitLevels } = require('./levels.js');
 
 const client = new Client({ intents: [
 	GatewayIntentBits.Guilds,
@@ -20,7 +19,7 @@ for (const file of eventFiles) {
 	const filePath = path.join(eventsPath, file);
 	const event = require(filePath);
 	if (event.once) {
-		client.once(event.name, (...args) => event.execute(...args));
+		client.once(event.name, (...args) => event.execute(...args, db));
 	}
 	else {
 		client.on(event.name, (...args) => event.execute(...args, db));
@@ -58,7 +57,5 @@ for (const file of buttonFiles) {
 		console.log(`[WARNING] The command at ${filePath} is missing a required "customId" or "execute" property.`);
 	}
 }
-
-InitLevels(client, db);
 
 client.login(token);
