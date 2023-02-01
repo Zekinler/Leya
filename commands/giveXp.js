@@ -53,7 +53,7 @@ module.exports = {
 
 		const oldLevel = memberLevelingStats.level;
 
-		if (await GiveXP(db, guildLevelingSettings.xpRate, member, memberLevelingStats, guildLevelingSettings)) {
+		if (await GiveXP(db, interaction.options.getInteger('amount'), member, memberLevelingStats, guildLevelingSettings)) {
 			if (guildLevelingSettings.levelUpMessageChannel === null) {
 				const levelUpMessageChannel = await interaction.guild.channels.fetch(databaseMember.stats.lastMessageSentChannelId);
 

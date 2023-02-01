@@ -38,7 +38,7 @@ async function HandleLevelRewards(member, memberLevelingStats, guildLevelingSett
 	let highestRoles = [];
 	let stackingRoles = [];
 
-	for (const levelReward of guildLevelingSettings.levelReward) {
+	for (const levelReward of guildLevelingSettings.levelRewards) {
 		if (memberLevelingStats.level >= levelReward.level && levelReward.level > highestLevel) {
 			highestRoles = levelReward.roleIds;
 			highestLevel = levelReward.level;
