@@ -1,5 +1,6 @@
 const { Events, EmbedBuilder } = require('discord.js');
 const { GiveXP } = require('../leveling.js');
+const { GetDatabaseGuilds } = require('../database.js');
 
 module.exports = {
 	name: Events.MessageCreate,
@@ -14,7 +15,7 @@ module.exports = {
 	async leveling(db, message) {
 		if (message.author.bot) return;
 
-		const databaseGuilds = await db.get('guilds');
+		const databaseGuilds = await GetDatabaseGuilds(db);
 		const guildLevelingSettings = databaseGuilds.get(message.guildId).settings.levelingSettings;
 
 		if (!guildLevelingSettings.enabled) return;

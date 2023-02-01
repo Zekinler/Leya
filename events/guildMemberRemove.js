@@ -1,9 +1,10 @@
 const { Events } = require('discord.js');
+const { GetDatabaseGuilds } = require('../database.js');
 
 module.exports = {
 	name: Events.GuildMemberRemove,
 	async execute(member, db) {
-		const databaseGuilds = await db.get('guilds');
+		const databaseGuilds = await GetDatabaseGuilds(db);
 		const databaseGuild = databaseGuilds.get(member.guild.id);
 
 		databaseGuild.members.delete(member.id);

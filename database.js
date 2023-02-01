@@ -45,10 +45,10 @@ class DatabaseMember {
 }
 
 async function InitDatabase(db, client) {
-	const databaseGuilds = new Collection();
+	let databaseGuilds = new Collection();
 
 	if (await db.has('guilds')) {
-		databaseGuilds.merge(await db.get('guilds'));
+		databaseGuilds = await GetDatabaseGuilds(db);
 		console.log('Used existing guilds collection');
 	}
 	else {
@@ -57,7 +57,7 @@ async function InitDatabase(db, client) {
 
 	const oAuth2Guilds = await client.guilds.fetch();
 
-	for (const oAuth2Guild of oAuth2Guilds) {
+	for (const oAuth2Guild of oAuth2Guilds.values()) {
 		const guild = await oAuth2Guild.fetch();
 
 		if (!databaseGuilds.has(guild.id)) {
@@ -69,10 +69,10 @@ async function InitDatabase(db, client) {
 
 		const members = await guild.members.fetch({ force: true });
 
-		for (const member of members) {
+		for (const member of members.values()) {
 			if (!databaseGuild.members.has(member.id)) {
 				databaseGuild.members.set(member.id, new DatabaseMember(member.id, member.user.bot));
-				console.log(`Set new key for user: ${member.id}`);
+				console.log(`Set new key for member: ${member.id}`);
 			}
 		}
 
@@ -82,8 +82,29 @@ async function InitDatabase(db, client) {
 	await db.set('guilds', databaseGuilds);
 }
 
+async function GetDatabaseGuilds(db) {
+	const guildsArray = await db.get('guilds');
+
+	const guildsCollection = new Collection();
+
+	for (const guildElement of guildsArray) {
+		const membersCollection = new Collection();
+
+		for (const memberElement of guildElement.members) {
+			membersCollection.set(memberElement.id, memberElement);
+		}
+
+		guildElement.members = membersCollection;
+
+		guildsCollection.set(guildElement.id, guildElement);
+	}
+
+	return guildsCollection;
+}
+
 module.exports = {
 	DatabaseGuild,
 	DatabaseMember,
 	InitDatabase,
+	GetDatabaseGuilds,
 };

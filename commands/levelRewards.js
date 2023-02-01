@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { LevelReward, HandleLevelRewards } = require('../leveling.js');
+const { GetDatabaseGuilds } = require('../database.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -52,7 +53,7 @@ module.exports = {
 			return;
 		}
 
-		const databaseGuilds = await db.get('guilds');
+		const databaseGuilds = await GetDatabaseGuilds(db);
 		const guildLevelingSettings = databaseGuilds.get(interaction.guildId).settings.levelingSettings;
 
 		if (!guildLevelingSettings.enabled) {
@@ -103,8 +104,7 @@ module.exports = {
 				guildLevelingSettings.levelRewards.push(new LevelReward(interaction.options.getInteger('level'), [interaction.options.getRole('role').id], interaction.options.getBoolean('stackable') ? interaction.options.getBoolean('stackable') : false));
 			}
 
-			const guildMembers = await interaction.guild.members.fetch();
-			for (const member of guildMembers) {
+			for (const member of guildMembers.values()) {
 				await HandleLevelRewards(member, databaseGuilds.get(interaction.guildId).members.get(), guildLevelingSettings);
 			}
 
@@ -120,7 +120,7 @@ module.exports = {
 			}
 
 			if (interaction.options.getRole('role') === null) {
-				for (const member of guildMembers) {
+				for (const member of guildMembers.values()) {
 					for (const roleId of guildLevelingSettings.levelRewards[levelRewardIndex].roleIds) {
 						await member.roles.remove(roleId, 'The level reward that rewards this role has been removed');
 					}
@@ -150,7 +150,7 @@ module.exports = {
 			break;
 		}
 		case 'clearlevelrewards': {
-			for (const member of guildMembers) {
+			for (const member of guildMembers.values()) {
 				for (const levelReward of guildLevelingSettings.levelRewards) {
 					for (const roleId of levelReward.roleIds) {
 						await member.roles.remove(roleId, 'The level reward that rewards this role has been removed');

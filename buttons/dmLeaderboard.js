@@ -1,9 +1,10 @@
 const { AttachmentBuilder } = require('discord.js');
+const { GetDatabaseGuilds } = require('../database.js');
 
 module.exports = {
 	customId: 'dmleaderboard',
 	async execute(interaction, db) {
-		const databaseGuilds = await db.get('guilds');
+		const databaseGuilds = await GetDatabaseGuilds(db);
 		const guildLevelingSettings = databaseGuilds.get(interaction.guildId).settings.levelingSettings;
 
 		if (!guildLevelingSettings.enabled) {
@@ -11,7 +12,7 @@ module.exports = {
 			return;
 		}
 
-		const nonBotMembers = await databaseGuilds.get(interaction.guildId).members.filter((databaseMember) => !databaseMember.bot);
+		const nonBotMembers = await databaseGuilds.get(interaction.guildId).members.values().filter((databaseMember) => !databaseMember.bot);
 		const optedInMembers = await nonBotMembers.filter((nonBotMember) => nonBotMember.settings.levelingSettings.optIn);
 		await optedInMembers.sort((a, b) => (a.stats.levelingStats.level < b.stats.levelingStats.level || (a.stats.levelingStats.level === b.stats.levelingStats.level && a.stats.levelingStats.xp < b.stats.levelingStats.xp)) ? 1 : -1);
 

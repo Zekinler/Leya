@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { GetDatabaseGuilds } = require('../database.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -15,7 +16,7 @@ module.exports = {
 			return;
 		}
 
-		const databaseGuilds = await db.get('guilds');
+		const databaseGuilds = await GetDatabaseGuilds(db);
 		const guildLevelingSettings = databaseGuilds.get(interaction.guildId).settings.levelingSettings;
 
 		if (!guildLevelingSettings.enabled) {
