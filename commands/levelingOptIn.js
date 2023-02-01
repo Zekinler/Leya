@@ -28,23 +28,23 @@ module.exports = {
 		}
 
 		const databaseMember = databaseGuilds.get(interaction.guildId).members.get(interaction.member.id);
-		const memberLevelingStats = databaseMember.stats.levelingStats;
 
 		switch (interaction.options.getSubcommand()) {
 		case 'viewoptedness': {
-			await interaction.reply(`Opted-in: ${memberLevelingStats.optIn}`);
+			await interaction.reply(`Opted-in: ${databaseMember.settings.levelingSettings.optIn}`);
 			break;
 		}
 		case 'setoptedness': {
-			memberLevelingStats.optIn = interaction.options.getBoolean('optIn');
+			databaseMember.settings.levelingSettings.optIn = interaction.options.getBoolean('optin');
 
-			await interaction.reply(interaction.options.getBoolean('optIn') ? 'Successfully opted-in to leveling' : 'Successfully opted-out of leveling');
+			await interaction.reply(interaction.options.getBoolean('optin') ? 'Successfully opted-in to leveling' : 'Successfully opted-out of leveling');
 			break;
 		}
 		}
 
-		databaseMember.stats.levelingStats = memberLevelingStats;
-		databaseGuilds.get(interaction.guildId).members.set(interaction.member.id, databaseMember);
-		await db.get('guilds', databaseGuilds);
+		const databaseGuild = databaseGuilds.get(interaction.guildId);
+		databaseGuild.members.set(interaction.member.id, databaseMember);
+		databaseGuilds.set(interaction.guildId, databaseGuild);
+		await db.set('guilds', databaseGuilds);
 	},
 };

@@ -43,7 +43,9 @@ module.exports = {
 		const member = await interaction.guild.members.fetch(databaseMember.id);
 		await HandleLevelRewards(member, databaseMember.stats.levelingStats, guildLevelingSettings);
 
-		databaseGuilds.get(interaction.guildId).members.set(interaction.member.id, databaseMember);
+		const databaseGuild = databaseGuilds.get(interaction.guildId);
+		databaseGuild.members.set(interaction.member.id, databaseMember);
+		databaseGuilds.set(interaction.guildId, databaseGuild);
 		await db.set('guilds', databaseGuilds);
 
 		await interaction.reply(`Successfully reset the level and xp of ${interaction.options.getUser('target').username}`);
