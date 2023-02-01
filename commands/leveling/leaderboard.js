@@ -1,5 +1,5 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { GetDatabaseGuilds } = require('../database.js');
+const { GetDatabaseGuilds } = require('../../database.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -28,6 +28,7 @@ module.exports = {
 		const indexOfInteractionMember = optedInMembers.findIndex((optedInMember) => optedInMember.id === interaction.member.id);
 
 		for (let i = 0; i < 10; i++) {
+			if (i === optedInMembers.length) break;
 			if (optedInMembers[i].id === interaction.member.id) {
 				embed.addFields({ name: `${i + 1}. ${interaction.user.username}`, value: `Level: ${optedInMembers[i].stats.levelingStats.level}, XP: ${optedInMembers[i].stats.levelingStats.xp}` });
 			}

@@ -11,6 +11,7 @@
   "dependencies": {
     "better-sqlite3": "^8.0.1",
     "discord.js": "^14.7.1",
+    "fs-readdir-recursive": "^1.1.0",
     "quick.db": "^9.0.8"
   },
   "devDependencies": {

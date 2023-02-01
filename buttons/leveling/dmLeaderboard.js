@@ -1,5 +1,5 @@
 const { AttachmentBuilder } = require('discord.js');
-const { GetDatabaseGuilds } = require('../database.js');
+const { GetDatabaseGuilds } = require('../../database.js');
 
 module.exports = {
 	customId: 'dmleaderboard',
