@@ -23,6 +23,8 @@ module.exports = {
 
 		const databaseMembers = databaseGuilds.get(interaction.guildId).members;
 
+		await interaction.deferReply();
+
 		for (const databaseMember of databaseMembers.values()) {
 			if (databaseMember.bot) continue;
 
@@ -42,6 +44,6 @@ module.exports = {
 		databaseGuilds.set(interaction.guildId, databaseGuild);
 		await db.set('guilds', databaseGuilds);
 
-		await interaction.reply(`Successfully reset the level and xp of ${databaseMembers.size} members of server`);
+		await interaction.editReply(`Successfully reset the level and xp of ${databaseMembers.size} members of server`);
 	},
 };
