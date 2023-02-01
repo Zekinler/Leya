@@ -25,7 +25,7 @@ module.exports = {
 			.setDescription('Leaderboard:')
 			.setThumbnail(`https://cdn.discordapp.com/icons/${interaction.guild.id}/${interaction.guild.icon}`);
 
-		const indexOfInteractionMember = optedInMembers.toJSON().findIndex((optedInMember) => optedInMember.id === interaction.member.id);
+		const indexOfInteractionMember = optedInMembers.findIndex((optedInMember) => optedInMember.id === interaction.member.id);
 
 		for (let i = 0; i < 10; i++) {
 			if (optedInMembers[i].id === interaction.member.id) {

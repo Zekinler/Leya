@@ -18,7 +18,7 @@ module.exports = {
 
 		let leaderboard = '';
 
-		for (let i = 0; i < optedInMembers.size; i++) {
+		for (let i = 0; i < optedInMembers.length; i++) {
 			if (optedInMembers[i].id === interaction.member.id) {
 				leaderboard += `${i + 1}. ${interaction.user.username} - Level: ${optedInMembers[i].stats.levelingStats.level}, XP: ${optedInMembers[i].stats.levelingStats.xp}\n`;
 			}
