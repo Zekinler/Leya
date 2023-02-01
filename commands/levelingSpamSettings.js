@@ -49,7 +49,7 @@ module.exports = {
 		const databaseGuilds = await GetDatabaseGuilds(db);
 		const guildLevelingSettings = databaseGuilds.get(interaction.guildId).settings.levelingSettings;
 
-		if (guildLevelingSettings.enabled) {
+		if (!guildLevelingSettings.enabled) {
 			await interaction.reply({ content: 'Leveling is disabled on this server', ephemeral: true });
 			return;
 		}
