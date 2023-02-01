@@ -67,7 +67,7 @@ module.exports = {
 		case 'viewlevelrewards': {
 			const embed = new EmbedBuilder()
 				.setColor(0x0099FF)
-				.setTitle('Reward Roles:');
+				.setTitle('Level Rewards:');
 
 			if (guildLevelingSettings.levelRewards.length > 0) {
 				await guildLevelingSettings.levelRewards.sort((a, b) => (a.level < b.level) ? 1 : -1);
