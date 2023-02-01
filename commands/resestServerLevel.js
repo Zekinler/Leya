@@ -1,33 +1,46 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { LevelsMember, GetIndexOfLevelsGuild } = require('../levels.js');
+const { HandleLevelRewards } = require('../leveling.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('resetserverlevel')
-		.setDescription('Reset the levels and xp of all members on the server'),
+		.setDescription('Reset the level and xp of all members on the server'),
 
 	async execute(interaction, db) {
-		if (!(interaction.memberPermissions.has('MANAGE_SERVER') || interaction.memberPermissions.has('ADMINISTRATOR'))) {
+		if (!interaction.memberPermissions.has(['MANAGE_SERVER', 'ADMINISTRATOR'])) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
 
-		const levels = db.table('levels');
+		const databaseGuilds = await db.get('guilds');
+		const guildLevelingSettings = databaseGuilds.get(interaction.guildId).settings.levelingSettings;
 
-		const indexOfLevelsGuild = await GetIndexOfLevelsGuild(levels, interaction.guildId);
-		const levelsGuildSettings = await levels.get(`guilds.${indexOfLevelsGuild}.settings`);
-
-		if (!levelsGuildSettings.enabled) {
-			await interaction.reply({ content: 'Levels are disabled on this server', ephemeral: true });
+		if (!guildLevelingSettings.enabled) {
+			await interaction.reply({ content: 'Leveling is disabled on this server', ephemeral: true });
 			return;
 		}
 
-		await levels.set(`guilds[${indexOfLevelsGuild}].users`, []);
+		const databaseMembers = databaseGuilds.get(interaction.guildId).members;
 
-		for (const member in await interaction.guild.members.fetch()) {
-			await levels.push(`guilds.${indexOfLevelsGuild}.members`, new LevelsMember(member.id));
+		for (const databaseMember of databaseMembers) {
+			if (databaseMember.bot) continue;
+
+			databaseMember.stats.levelingStats = {
+				level: 0,
+				xp: 0,
+				spamBeginTimestamp: 0,
+				spamMessagesSent: 0,
+			};
+
+			const member = await interaction.guild.members.fetch(databaseMember.id);
+			await HandleLevelRewards(member, databaseMember.stats.levelingStats, guildLevelingSettings);
 		}
 
-		await interaction.reply('Successfully reset all members of server\'s levels and xp');
+		const databaseGuild = databaseGuilds.get(interaction.guildId);
+		databaseGuild.members = databaseMembers;
+		databaseGuilds.set(interaction.guildId, databaseGuild);
+		await db.set('guilds', databaseGuilds);
+
+		await interaction.reply(`Successfully reset the level and xp of ${databaseMembers.size} members of server`);
 	},
 };

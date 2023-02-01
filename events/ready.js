@@ -1,11 +1,11 @@
 const { Events } = require('discord.js');
-const { InitLevels } = require('../levels.js');
+const { InitDatabase } = require('../database.js');
 
 module.exports = {
 	name: Events.ClientReady,
 	once: true,
 	async execute(client, db) {
-		await InitLevels(client, db);
+		await InitDatabase(db, client);
 
 		console.log(`Ready! Logged in as ${client.user.tag}`);
 	},

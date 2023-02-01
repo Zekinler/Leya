@@ -1,10 +1,9 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { GetIndexOfLevelsGuild } = require('../levels.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
-		.setName('levelsspamsettings')
-		.setDescription('Configure the spam settings, to protect against cheating the leveling system')
+		.setName('levelingspamsettings')
+		.setDescription('Configure the spam settings, to protect against cheating of the leveling system')
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName('viewsettings')
@@ -41,18 +40,16 @@ module.exports = {
 						.setRequired(true))),
 
 	async execute(interaction, db) {
-		if (!(interaction.memberPermissions.has('MANAGE_SERVER') || interaction.memberPermissions.has('ADMINISTRATOR'))) {
+		if (!interaction.memberPermissions.has(['MANAGE_SERVER', 'ADMINISTRATOR'])) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
 
-		const levels = db.table('levels');
+		const databaseGuilds = await db.get('guilds');
+		const guildLevelingSettings = databaseGuilds.get(interaction.guildId).settings.levelingSettings;
 
-		const indexOfLevelsGuild = await GetIndexOfLevelsGuild(levels, interaction.guildId);
-		const levelsGuildSettings = await levels.get(`guilds.${indexOfLevelsGuild}.settings`);
-
-		if (!levelsGuildSettings.enabled) {
-			await interaction.reply({ content: 'Levels are disabled on this server', ephemeral: true });
+		if (guildLevelingSettings.enabled) {
+			await interaction.reply({ content: 'Leveling is disabled on this server', ephemeral: true });
 			return;
 		}
 
@@ -62,31 +59,34 @@ module.exports = {
 				.setColor(0x0099FF)
 				.setTitle('Levels Spam Settings:')
 				.addFields(
-					{ name: 'Shortest Message Duration:', value:`${levelsGuildSettings.shortestMessageDuration}` },
-					{ name: 'Max Message Count:', value: `${levelsGuildSettings.maxMessageCount}` },
-					{ name: 'Spam Penalty Duration:', value: `${levelsGuildSettings.spamPenaltyDuration}` },
+					{ name: 'Shortest Message Duration:', value:`${guildLevelingSettings.shortestMessageDuration}` },
+					{ name: 'Max Message Count:', value: `${guildLevelingSettings.maxMessageCount}` },
+					{ name: 'Spam Penalty Duration:', value: `${guildLevelingSettings.spamPenaltyDuration}` },
 				);
 
 			await interaction.reply({ embeds: [embed] });
 			break;
 		}
 		case 'setshortestmessageduration': {
-			levelsGuildSettings.shortestMessageDuration = interaction.options.getNumber('duration');
-			await interaction.reply(`Successfully set the shortest message duration to ${levelsGuildSettings.shortestMessageDuration}`);
+			guildLevelingSettings.shortestMessageDuration = interaction.options.getNumber('duration');
+			await interaction.reply(`Successfully set the shortest message duration to ${guildLevelingSettings.shortestMessageDuration}`);
 			break;
 		}
 		case 'setmaxmessagecount': {
-			levelsGuildSettings.maxMessageCount = interaction.options.getInteger('amount');
-			await interaction.reply(`Successfully set the max message count to ${levelsGuildSettings.maxMessageCount}`);
+			guildLevelingSettings.maxMessageCount = interaction.options.getInteger('amount');
+			await interaction.reply(`Successfully set the max message count to ${guildLevelingSettings.maxMessageCount}`);
 			break;
 		}
 		case 'setspampenaltyduration': {
-			levelsGuildSettings.spamPenaltyDuration = interaction.options.getNumber('duration');
-			await interaction.reply(`Successfully set the spam penalty duration to ${levelsGuildSettings.spamPenaltyDuration}`);
+			guildLevelingSettings.spamPenaltyDuration = interaction.options.getNumber('duration');
+			await interaction.reply(`Successfully set the spam penalty duration to ${guildLevelingSettings.spamPenaltyDuration}`);
 			break;
 		}
 		}
 
-		await levels.set(`guilds.${indexOfLevelsGuild}.settings`, levelsGuildSettings);
+		const databaseGuild = databaseGuilds.get(interaction.guildId);
+		databaseGuild.settings.levelingSettings = guildLevelingSettings;
+		databaseGuilds.set(interaction.guildId, databaseGuild);
+		await db.set('guilds', databaseGuilds);
 	},
 };

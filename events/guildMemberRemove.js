@@ -1,14 +1,14 @@
 const { Events } = require('discord.js');
-const { GetIndexOfLevelsGuild, GetIndexOfLevelsMember } = require('../levels.js');
 
 module.exports = {
 	name: Events.GuildMemberRemove,
 	async execute(member, db) {
-		const levels = db.table('levels');
+		const databaseGuilds = await db.get('guilds');
+		const databaseGuild = databaseGuilds.get(member.guild.id);
 
-		const indexOfLevelsGuild = await GetIndexOfLevelsGuild(levels, member.guild.id);
-		const indexOfLevelsMember = await GetIndexOfLevelsMember(levels, indexOfLevelsGuild, member.id);
+		databaseGuild.members.delete(member.id);
 
-		await levels.delete(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`);
+		databaseGuilds.set(member.guild.id, databaseGuild);
+		await db.set('guilds', databaseGuilds);
 	},
 };

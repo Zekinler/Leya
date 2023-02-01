@@ -1,33 +1,29 @@
 const { AttachmentBuilder } = require('discord.js');
-const { GetIndexOfLevelsGuild } = require('../levels.js');
 
 module.exports = {
 	customId: 'dmleaderboard',
 	async execute(interaction, db) {
-		const levels = db.table('levels');
+		const databaseGuilds = await db.get('guilds');
+		const guildLevelingSettings = databaseGuilds.get(interaction.guildId).settings.levelingSettings;
 
-		const indexOfLevelsGuild = await GetIndexOfLevelsGuild(levels, interaction.guildId);
-		const levelsGuildSettings = await levels.get(`guilds.${indexOfLevelsGuild}.settings`);
-
-		if (!levelsGuildSettings.enabled) {
-			await interaction.reply({ content: 'Levels are disabled on this server', ephemeral: true });
+		if (!guildLevelingSettings.enabled) {
+			await interaction.reply({ content: 'Leveling is disabled on this server', ephemeral: true });
 			return;
 		}
 
-		let levelsMembers = await levels.get(`guilds.${indexOfLevelsGuild}.members`);
+		const nonBotMembers = await databaseGuilds.get(interaction.guildId).members.filter((databaseMember) => !databaseMember.bot);
+		const optedInMembers = await nonBotMembers.filter((nonBotMember) => nonBotMember.settings.levelingSettings.optIn);
+		await optedInMembers.sort((a, b) => (a.stats.levelingStats.level < b.stats.levelingStats.level || (a.stats.levelingStats.level === b.stats.levelingStats.level && a.stats.levelingStats.xp < b.stats.levelingStats.xp)) ? 1 : -1);
 
 		let leaderboard = '';
 
-		levelsMembers = levelsMembers.filter((levelsMember) => levelsMember.optIn);
-		levelsMembers = levelsMembers.sort((a, b) => (a.level < b.level || (a.level === b.level && a.xp < b.xp)) ? 1 : -1);
-
-		for (let i = 0; i < levelsMembers.length; i++) {
-			if (levelsMembers[i].id == interaction.member.id) {
-				leaderboard += `${i + 1}. ${interaction.user.username} - Level: ${levelsMembers[i].level}, XP: ${levelsMembers[i].xp}\n`;
+		for (let i = 0; i < optedInMembers.size; i++) {
+			if (optedInMembers[i].id === interaction.member.id) {
+				leaderboard += `${i + 1}. ${interaction.user.username} - Level: ${optedInMembers[i].stats.levelingStats.level}, XP: ${optedInMembers[i].stats.levelingStats.xp}\n`;
 			}
 			else {
-				const fetchedUser = await interaction.guild.members.fetch(levelsMembers[i].id);
-				leaderboard += `${i + 1}. ${fetchedUser.user.username} - Level: ${levelsMembers[i].level}, XP: ${levelsMembers[i].xp}\n`;
+				const fetchedMember = await interaction.guild.members.fetch(optedInMembers[i].id);
+				leaderboard += `${i + 1}. ${fetchedMember.user.username} - Level: ${optedInMembers[i].stats.levelingStats.level}, XP: ${optedInMembers[i].stats.levelingStats.xp}\n`;
 			}
 		}
 

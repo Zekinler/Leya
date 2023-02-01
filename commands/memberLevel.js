@@ -1,5 +1,4 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { GetIndexOfLevelsGuild, GetIndexOfLevelsMember } = require('../levels');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -11,37 +10,37 @@ module.exports = {
 				.setDescription('The member to check (leave blank to see your level and xp)')),
 
 	async execute(interaction, db) {
-		if (interaction.options.getUser('target').user.bot) {
-			await interaction.reply({ content: 'Bots don\'t have levels', ephemeral: true });
+		if (interaction.options.getUser('target') !== null && interaction.options.getUser('target').bot) {
+			await interaction.reply({ content: 'Bots don\'t have a level', ephemeral: true });
 			return;
 		}
 
-		const levels = db.table('levels');
+		const databaseGuilds = await db.get('guilds');
+		const guildLevelingSettings = databaseGuilds.get(interaction.guildId).settings.levelingSettings;
 
-		const indexOfLevelsGuild = await GetIndexOfLevelsGuild(levels, interaction.guildId);
-		const levelsGuildSettings = await levels.get(`guilds.${indexOfLevelsGuild}.settings`);
-
-		if (!levelsGuildSettings.enabled) {
-			await interaction.reply({ content: 'Levels are disabled on this server', ephemeral: true });
+		if (!guildLevelingSettings.enabled) {
+			await interaction.reply({ content: 'Leveling is disabled on this server', ephemeral: true });
 			return;
 		}
 
-		const member = interaction.options.getUser('target') === null ? interaction.member : interaction.options.getUser('target');
-		const indexOfLevelsMember = await GetIndexOfLevelsMember(levels, indexOfLevelsGuild, member.id);
-		const levelsMember = await levels.get(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`);
+		const user = interaction.options.getUser('target') === null ? interaction.user : interaction.options.getUser('target');
+		const member = await interaction.guild.members.fetch(user.id);
 
-		if (!levelsMember.optIn) {
-			await interaction.reply({ content: 'This member has opted out of levels', ephemeral: true });
+		const databaseMember = databaseGuilds.get(interaction.guildId).members.get(member.id);
+		const memberLevelingStats = databaseMember.stats.levelingStats;
+
+		if (!databaseMember.settings.levelingSettings.optIn) {
+			await interaction.reply({ content: 'This member has opted-out of leveling', ephemeral: true });
 			return;
 		}
 
 		const embed = new EmbedBuilder()
 			.setColor(0x0099FF)
-			.setTitle(member.user.username)
-			.setThumbnail(`https://cdn.discordapp.com/avatars/${member.id}/${member.avatar}`)
+			.setTitle(user.username)
+			.setThumbnail(`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}`)
 			.addFields(
-				{ name: 'Level:', value: `${levelsMember.level}`, inline: true },
-				{ name: 'XP:', value:`${levelsMember.xp}`, inline: true },
+				{ name: 'Level:', value: `${memberLevelingStats.level}`, inline: true },
+				{ name: 'XP:', value:`${memberLevelingStats.xp}`, inline: true },
 			);
 
 		await interaction.reply({ embeds: [embed] });

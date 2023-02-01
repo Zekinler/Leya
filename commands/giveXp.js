@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { GetIndexOfLevelsGuild, GetIndexOfLevelsMember } = require('../levels');
+const { GiveXP } = require('../leveling.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -16,7 +16,7 @@ module.exports = {
 				.setDescription('The member to give to/take from (leave blank to target yourself)')),
 
 	async execute(interaction, db) {
-		if (!(interaction.memberPermissions.has('MANAGE_SERVER') || interaction.memberPermissions.has('ADMINISTRATOR'))) {
+		if (!interaction.memberPermissions.has(['MANAGE_SERVER', 'ADMINISTRATOR'])) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
@@ -26,85 +26,53 @@ module.exports = {
 			return;
 		}
 
-		if (interaction.options.getUser('target').user.bot) {
-			await interaction.reply({ content: 'Bots don\'t have levels', ephemeral: true });
+		if (interaction.options.getUser('target') !== null && interaction.options.getUser('target').bot) {
+			await interaction.reply({ content: 'Bots don\'t have a level', ephemeral: true });
 			return;
 		}
 
-		const levels = db.table('levels');
+		const databaseGuilds = await db.get('guilds');
+		const guildLevelingSettings = databaseGuilds.get(interaction.guildId).settings.levelingSettings;
 
-		const indexOfLevelsGuild = await GetIndexOfLevelsGuild(levels, interaction.guildId);
-		const levelsGuildSettings = await levels.get(`guilds.${indexOfLevelsGuild}.settings`);
-
-		if (!levelsGuildSettings.enabled) {
-			await interaction.reply({ content: 'Levels are disabled on this server', ephemeral: true });
+		if (!guildLevelingSettings.enabled) {
+			await interaction.reply({ content: 'Leveling is disabled on this server', ephemeral: true });
 			return;
 		}
 
-		const member = interaction.options.getUser('target') === null ? interaction.member : interaction.options.getUser('target');
-		const indexOfLevelsMember = await GetIndexOfLevelsMember(levels, indexOfLevelsGuild, member.id);
+		const user = interaction.options.getUser('target') === null ? interaction.user : interaction.options.getUser('target');
+		const member = await interaction.guild.members.fetch(user.id);
 
-		const levelsMember = await levels.get(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`);
+		const databaseMember = databaseGuilds.get(interaction.guildId).members.get(member.id);
+		const memberLevelingStats = databaseMember.stats.levelingStats;
 
-		if (!levelsMember.optIn) {
-			await interaction.reply({ content: 'This member has opted out of levels', ephemeral: true });
+		if (!databaseMember.settings.levelingSettings.optIn) {
+			await interaction.reply({ content: 'This member has opted-out of leveling', ephemeral: true });
 			return;
 		}
 
-		levelsMember.xp += interaction.options.getInteger('amount');
+		const oldLevel = memberLevelingStats.level;
 
-		let levelUpThreshold = levelsGuildSettings.levelUpThreshold + (levelsMember.level * levelsGuildSettings.levelUpScaling);
+		if (await GiveXP(db, guildLevelingSettings.xpRate, member, memberLevelingStats, guildLevelingSettings)) {
+			if (guildLevelingSettings.levelUpMessageChannel === null) {
+				const levelUpMessageChannel = await interaction.guild.channels.fetch(databaseMember.stats.lastMessageSentChannelId);
 
-		if (levelsMember.xp >= 0 && levelsMember.xp < levelUpThreshold) {
-			await levels.set(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`, levelsMember);
-			return;
-		}
-
-		while (levelsMember.xp < 0) {
-			levelsMember.level--;
-			levelUpThreshold = levelsGuildSettings.levelUpThreshold + (levelsMember.level * levelsGuildSettings.levelUpScaling);
-			levelsMember.xp += levelUpThreshold;
-		}
-
-		while (levelsMember.xp >= levelUpThreshold) {
-			levelsMember.level++;
-			levelsMember.xp -= levelUpThreshold;
-			levelUpThreshold = levelsGuildSettings.levelUpThreshold + (levelsMember.level * levelsGuildSettings.levelUpScaling);
-		}
-
-		await levels.set(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`, levelsMember);
-
-		let highestRoles = [];
-		const rolesToRemove = [];
-
-		for (const rewardRole in levelsGuildSettings.rewardRoles) {
-			for (const roleId in rewardRole.roleIds) {
-				if (member.roles.cache.has(roleId)) {
-					if (levelsMember.level < rewardRole.level) rolesToRemove.push(roleId); // Queue each reward role the member has for later removal if necessary
+				if (levelUpMessageChannel.send !== undefined) {
+					await levelUpMessageChannel.send(`Congrats, <@${user.id}>, you've leveled-${memberLevelingStats.level > oldLevel ? 'up' : 'down'} to level ${memberLevelingStats.level}!`);
 				}
-				else if (levelsMember.level >= rewardRole.level) { // Check for the highest reward roles that applies to the member
-					highestRoles = rewardRole.roleIds;
+				else {
+					interaction.channel.send(`Congrats, <@${user.id}>, you've leveled-${memberLevelingStats.level > oldLevel ? 'up' : 'down'} to level ${memberLevelingStats.level}!`);
 				}
+			}
+			else {
+				const levelUpMessageChannel = await interaction.guild.channels.fetch(guildLevelingSettings.levelUpMessageChannel);
+				await levelUpMessageChannel.send(`Congrats, <@${user.id}>, you've leveled-${memberLevelingStats.level > oldLevel ? 'up' : 'down'} to level ${memberLevelingStats.level}!`);
 			}
 		}
 
-		if (highestRoles !== []) {
-			await member.roles.add(highestRoles, `Leveled up to level ${levelsMember.level}`);
-		}
+		databaseMember.stats.levelingStats = memberLevelingStats;
+		databaseGuilds.get(interaction.guildId).members.set(member.id, databaseMember);
+		await db.set('guilds', databaseGuilds);
 
-		for (const role in rolesToRemove) {
-			await member.roles.remove(role, 'Role is of a lesser level than the highest reward roles that the user has');
-		}
-
-		if (levelsGuildSettings.levelUpMessageChannel === null) {
-			const levelUpMessageChannel = await interaction.guild.channels.fetch(levelsMember.lastMessageSentChannelId);
-			await levelUpMessageChannel.send(`Congrats, <@${interaction.options.getUser('target').id}>, you've leveled up to level ${levelsMember.level}!`);
-		}
-		else {
-			const levelUpMessageChannel = await interaction.guild.channels.fetch(levelsGuildSettings.levelUpMessageChannel);
-			await levelUpMessageChannel.send(`Congrats, <@${interaction.options.getUser('target').id}>, you've leveled up to level ${levelsMember.level}!`);
-		}
-
-		interaction.options.getInteger('amount') > 0 ? await interaction.reply(`Successfully gave ${interaction.options.getInteger('amount')} xp to ${interaction.options.getUser('target').username}`) : await interaction.reply(`Successfully took ${interaction.options.getInteger('amount')} xp from ${interaction.options.getUser('target').username}`);
+		interaction.options.getInteger('amount') > 0 ? await interaction.reply(`Successfully gave ${interaction.options.getInteger('amount')} xp to ${user.username}`) : await interaction.reply(`Successfully took ${-interaction.options.getInteger('amount')} xp from ${user.username}`);
 	},
 };

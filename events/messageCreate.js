@@ -1,96 +1,79 @@
 const { Events, EmbedBuilder } = require('discord.js');
-const { GetIndexOfLevelsGuild, GetIndexOfLevelsMember } = require('../levels');
+const { GiveXP } = require('../leveling.js');
 
 module.exports = {
 	name: Events.MessageCreate,
 	async execute(message, db) {
-		if (message.content.includes('https://scratch.mit.edu/projects/')) this.getScratchProject(message);
-		if (message.content.includes('https://scratch.mit.edu/users/')) this.getScratchUser(message);
-		if (message.content.includes('https://scratch.mit.edu/studios/')) this.getScratchStudio(message);
+		await this.leveling(db, message);
 
-		this.leveling(message, db);
+		if (message.content.includes('https://scratch.mit.edu/projects/')) await this.getScratchProject(message);
+		if (message.content.includes('https://scratch.mit.edu/users/')) await this.getScratchUser(message);
+		if (message.content.includes('https://scratch.mit.edu/studios/')) await this.getScratchStudio(message);
 	},
 
-	async leveling(message, db) {
+	async leveling(db, message) {
 		if (message.author.bot) return;
 
-		const levels = db.table('levels');
+		const databaseGuilds = await db.get('guilds');
+		const guildLevelingSettings = databaseGuilds.get(message.guildId).settings.levelingSettings;
 
-		const indexOfLevelsGuild = await GetIndexOfLevelsGuild(levels, message.member.guild.id);
-		const levelsGuildSettings = await levels.get(`guilds.${indexOfLevelsGuild}.settings`);
+		if (!guildLevelingSettings.enabled) return;
 
-		if (!levelsGuildSettings.enabled) return;
+		const databaseMember = databaseGuilds.get(message.guildId).members.get(message.member.id);
+		const memberLevelingStats = databaseMember.stats.levelingStats;
 
-		const indexOfLevelsMember = await GetIndexOfLevelsMember(levels, indexOfLevelsGuild, message.member.id);
-		const levelsMember = await levels.get(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`);
+		if (!databaseMember.settings.levelingSettings.optIn) return;
 
-		if (!levelsMember.optIn) return;
+		if (await this.checkForSpam(memberLevelingStats, guildLevelingSettings, message.createdTimestamp)) {
+			databaseMember.stats.levelingStats = memberLevelingStats;
+			databaseGuilds.get(message.guildId).members.set(message.member.id, databaseMember);
+			await db.set('guilds', databaseGuilds);
 
-		if (levelsMember.messagesSent >= levelsGuildSettings.maxMessageCount) {
-			if (Date.now() - levelsMember.sentenceBeginTimestamp <= levelsGuildSettings.spamPenaltyDuration * 1000) {
-				return;
+			return;
+		}
+
+		const oldLevel = memberLevelingStats.level;
+
+		if (await GiveXP(db, guildLevelingSettings.xpRate, message.member, memberLevelingStats, guildLevelingSettings)) {
+			if (guildLevelingSettings.levelUpMessageChannel === null) {
+				await message.reply(`Congrats, you've leveled-${memberLevelingStats.level > oldLevel ? 'up' : 'down'} to level ${memberLevelingStats.level}!`);
 			}
 			else {
-				levelsMember.messagesSent = 0;
-				levelsMember.sentenceBeginTimestamp = 0;
+				const levelUpMessageChannel = await message.guild.channels.fetch(guildLevelingSettings.levelUpMessageChannel);
+				await levelUpMessageChannel.send(`Congrats, <@${message.member.id}>, you've leveled-${memberLevelingStats.level > oldLevel ? 'up' : 'down'} to level ${memberLevelingStats.level}!`);
 			}
 		}
 
-		if (Date.now() - levelsMember.sentenceBeginTimestamp <= levelsGuildSettings.shortestMessageDuration * 1000) {
-			levelsMember.messagesSent++;
-		}
-		else {
-			levelsMember.messagesSent = 0;
-			levelsMember.sentenceBeginTimestamp = message.createdTimestamp;
-		}
+		databaseMember.stats.levelingStats = memberLevelingStats;
+		databaseGuilds.get(message.guildId).members.set(message.member.id, databaseMember);
+		await db.set('guilds', databaseGuilds);
+	},
 
-		if (levelsMember.messagesSent >= levelsGuildSettings.maxMessageCount) {
-			levelsMember.sentenceBeginTimestamp = message.createdTimestamp;
-			await levels.set(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`, levelsMember);
-			return;
-		}
+	async checkForSpam(memberLevelingStats, guildLevelingSettings, messageCreatedTimestamp) {
+		if (memberLevelingStats.spamMessagesSent >= guildLevelingSettings.maxMessageCount) {
+			if (Date.now() - memberLevelingStats.spamBeginTimestamp <= guildLevelingSettings.spamPenaltyDuration * 1000) {
+				return true;
+			}
+			else {
+				memberLevelingStats.spamMessagesSent = 0;
+				memberLevelingStats.spamBeginTimestamp = 0;
 
-		levelsMember.xp += levelsGuildSettings.xpRate;
-
-		let levelUpThreshold = levelsGuildSettings.levelUpThreshold + (levelsMember.level * levelsGuildSettings.levelUpScaling);
-
-		if (levelsMember.xp < levelUpThreshold) {
-			await levels.set(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`, levelsMember);
-			return;
-		}
-
-		while (levelsMember.xp >= levelUpThreshold) {
-			levelsMember.level++;
-			levelsMember.xp -= levelUpThreshold;
-			levelUpThreshold = levelsGuildSettings.levelUpThreshold + (levelsMember.level * levelsGuildSettings.levelUpScaling);
-		}
-
-		await levels.set(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`, levelsMember);
-
-		let highestRoles = [];
-		const rolesToRemove = [];
-
-		for (const rewardRole in levelsGuildSettings.rewardRoles) {
-			for (const roleId in rewardRole.roleIds) {
-				if (message.member.roles.cache.has(roleId)) {
-					if (levelsMember.level < rewardRole.level) rolesToRemove.push(roleId); // Queue each reward role the member has for later removal if necessary
-				}
-				else if (levelsMember.level >= rewardRole.level) { // Check for the highest reward roles that applies to the member
-					highestRoles = rewardRole.roleIds;
-				}
+				return false;
 			}
 		}
 
-		if (highestRoles !== []) {
-			await message.member.roles.add(highestRoles, `Leveled up to level ${levelsMember.level}`);
-		}
-
-		if (levelsGuildSettings.levelUpMessageChannel === null) {
-			await message.reply(`Congrats, you've leveled up to level ${levelsMember.level}!`);
+		if (Date.now() - memberLevelingStats.spamBeginTimestamp <= guildLevelingSettings.shortestMessageDuration * 1000) {
+			memberLevelingStats.spamMessagesSent++;
 		}
 		else {
-			const levelUpMessageChannel = await message.guild.channels.fetch(levelsGuildSettings.levelUpMessageChannel);
-			await levelUpMessageChannel.send(`Congrats, <@${message.author.id}>, you've leveled up to level ${levelsMember.level}!`);
+			memberLevelingStats.spamMessagesSent = 0;
+			memberLevelingStats.spamBeginTimestamp = messageCreatedTimestamp;
+		}
+
+		if (memberLevelingStats.spamMessagesSent >= guildLevelingSettings.maxMessageCount) {
+			memberLevelingStats.spamBeginTimestamp = messageCreatedTimestamp;
+
+			return true;
 		}
 	},
 

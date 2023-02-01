@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { GetIndexOfLevelsGuild, GetIndexOfLevelsMember } = require('../levels');
+const { HandleLevelRewards } = require('../leveling.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -12,40 +12,39 @@ module.exports = {
 				.setRequired(true)),
 
 	async execute(interaction, db) {
-		if (!(interaction.memberPermissions.has('MANAGE_SERVER') || interaction.memberPermissions.has('ADMINISTRATOR'))) {
+		if (!interaction.memberPermissions.has(['MANAGE_SERVER', 'ADMINISTRATOR'])) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
 
-		if (interaction.options.getUser('target').user.bot) {
-			await interaction.reply({ content: 'Bots don\'t have levels', ephemeral: true });
+		if (interaction.options.getUser('target').bot) {
+			await interaction.reply({ content: 'Bots don\'t have a level', ephemeral: true });
 			return;
 		}
 
-		const levels = db.table('levels');
+		const databaseGuilds = await db.get('guilds');
+		const guildLevelingSettings = databaseGuilds.get(interaction.guildId).settings.levelingSettings;
 
-		const indexOfLevelsGuild = await GetIndexOfLevelsGuild(levels, interaction.guildId);
-		const levelsGuildSettings = await levels.get(`guilds.${indexOfLevelsGuild}.settings`);
-
-		if (!levelsGuildSettings.enabled) {
-			await interaction.reply({ content: 'Levels are disabled on this server', ephemeral: true });
+		if (!guildLevelingSettings.enabled) {
+			await interaction.reply({ content: 'Leveling is disabled on this server', ephemeral: true });
 			return;
 		}
 
-		const member = interaction.options.getUser('target');
-		const indexOfLevelsMember = await GetIndexOfLevelsMember(levels, indexOfLevelsGuild, member.id);
-		const levelsMember = await levels.get(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`);
+		const databaseMember = databaseGuilds.get(interaction.guildId).members.get(interaction.options.getUser('target').id);
 
-		if (!levelsMember.optIn) {
-			await interaction.reply({ content: 'This member has opted out of levels', ephemeral: true });
-			return;
-		}
+		databaseMember.stats.levelingStats = {
+			level: 0,
+			xp: 0,
+			spamBeginTimestamp: 0,
+			spamMessagesSent: 0,
+		};
 
-		levelsMember.xp = 0;
-		levelsMember.level = 0;
+		const member = await interaction.guild.members.fetch(databaseMember.id);
+		await HandleLevelRewards(member, databaseMember.stats.levelingStats, guildLevelingSettings);
 
-		await levels.set(`guilds.${indexOfLevelsGuild}.members.${indexOfLevelsMember}`, levelsMember);
+		databaseGuilds.get(interaction.guildId).members.set(interaction.member.id, databaseMember);
+		await db.set('guilds', databaseGuilds);
 
-		await interaction.reply(`Successfully reset ${interaction.options.getUser('user').username}'s level and xp`);
+		await interaction.reply(`Successfully reset the level and xp of ${interaction.options.getUser('target').username}`);
 	},
 };

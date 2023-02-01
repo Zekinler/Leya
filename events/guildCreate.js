@@ -1,19 +1,20 @@
 const { Events } = require('discord.js');
-const { LevelsGuild, LevelsMember, GetIndexOfLevelsGuild } = require('../levels.js');
+const { DatabaseGuild, DatabaseMember } = require('../database.js');
 
 module.exports = {
 	name: Events.GuildCreate,
 	async execute(guild, db) {
-		const levels = db.table('levels');
+		const databaseGuild = new DatabaseGuild(guild.id);
 
-		await levels.push('guilds', new LevelsGuild(guild.id));
-
-		const indexOfLevelsGuild = await GetIndexOfLevelsGuild(levels, guild.id);
 		const members = await guild.members.fetch();
-		const membersJson = members.toJSON();
 
-		for (const member in membersJson) {
-			await levels.push(`guilds.${indexOfLevelsGuild}.members`, new LevelsMember(member.id));
+		for (const member of members) {
+			databaseGuild.members.set(member.id, new DatabaseMember(member.id));
 		}
+
+		const databaseGuilds = await db.get('guilds');
+		databaseGuilds.set(guild.id, databaseGuild);
+
+		await db.set('guilds', databaseGuilds);
 	},
 };
