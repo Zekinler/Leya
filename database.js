@@ -13,10 +13,6 @@ class DatabaseGuild {
 				levelUpScaling: 3,
 				levelUpMessageChannel: null,
 
-				shortestMessageDuration: 10,
-				maxMessageCount: 3,
-				spamPenaltyDuration: 20,
-
 				levelRewards: [],
 			},
 		};

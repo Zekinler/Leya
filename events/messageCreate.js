@@ -25,7 +25,7 @@ module.exports = {
 
 		if (!databaseMember.settings.levelingSettings.optIn) return;
 
-		if (await this.checkForSpam(memberLevelingStats, guildLevelingSettings, message.createdTimestamp)) {
+		if (await this.checkForSpam(memberLevelingStats, message.createdTimestamp)) {
 			databaseMember.stats.levelingStats = memberLevelingStats;
 			databaseGuilds.get(message.guildId).members.set(message.member.id, databaseMember);
 			await db.set('guilds', databaseGuilds);
@@ -50,9 +50,9 @@ module.exports = {
 		await db.set('guilds', databaseGuilds);
 	},
 
-	async checkForSpam(memberLevelingStats, guildLevelingSettings, messageCreatedTimestamp) {
-		if (memberLevelingStats.spamMessagesSent >= guildLevelingSettings.maxMessageCount) {
-			if (Date.now() - memberLevelingStats.spamBeginTimestamp <= guildLevelingSettings.spamPenaltyDuration * 1000) {
+	async checkForSpam(memberLevelingStats, messageCreatedTimestamp) {
+		if (memberLevelingStats.spamMessagesSent >= 3) {
+			if (Date.now() - memberLevelingStats.spamBeginTimestamp <= 20000) {
 				return true;
 			}
 			else {
@@ -63,7 +63,7 @@ module.exports = {
 			}
 		}
 
-		if (Date.now() - memberLevelingStats.spamBeginTimestamp <= guildLevelingSettings.shortestMessageDuration * 1000) {
+		if (Date.now() - memberLevelingStats.spamBeginTimestamp <= 10000) {
 			memberLevelingStats.spamMessagesSent++;
 		}
 		else {
@@ -71,7 +71,7 @@ module.exports = {
 			memberLevelingStats.spamBeginTimestamp = messageCreatedTimestamp;
 		}
 
-		if (memberLevelingStats.spamMessagesSent >= guildLevelingSettings.maxMessageCount) {
+		if (memberLevelingStats.spamMessagesSent >= 3) {
 			memberLevelingStats.spamBeginTimestamp = messageCreatedTimestamp;
 
 			return true;
