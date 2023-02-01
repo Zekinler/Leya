@@ -15,7 +15,7 @@ module.exports = {
 			return;
 		}
 
-		const nonBotMembers = await databaseGuilds.get(interaction.guildId).members.values().filter((databaseMember) => !databaseMember.bot);
+		const nonBotMembers = await databaseGuilds.get(interaction.guildId).members.toJSON().filter((databaseMember) => !databaseMember.bot);
 		const optedInMembers = await nonBotMembers.filter((nonBotMember) => nonBotMember.settings.levelingSettings.optIn);
 		await optedInMembers.sort((a, b) => (a.stats.levelingStats.level < b.stats.levelingStats.level || (a.stats.levelingStats.level === b.stats.levelingStats.level && a.stats.levelingStats.xp < b.stats.levelingStats.xp)) ? 1 : -1);
 
@@ -25,7 +25,7 @@ module.exports = {
 			.setDescription('Leaderboard:')
 			.setThumbnail(`https://cdn.discordapp.com/icons/${interaction.guild.id}/${interaction.guild.icon}`);
 
-		const indexOfInteractionMember = optedInMembers.values().findIndex((optedInMember) => optedInMember.id === interaction.member.id);
+		const indexOfInteractionMember = optedInMembers.toJSON().findIndex((optedInMember) => optedInMember.id === interaction.member.id);
 
 		for (let i = 0; i < 10; i++) {
 			if (optedInMembers[i].id === interaction.member.id) {

@@ -12,7 +12,7 @@ module.exports = {
 			return;
 		}
 
-		const nonBotMembers = await databaseGuilds.get(interaction.guildId).members.values().filter((databaseMember) => !databaseMember.bot);
+		const nonBotMembers = await databaseGuilds.get(interaction.guildId).members.toJSON().filter((databaseMember) => !databaseMember.bot);
 		const optedInMembers = await nonBotMembers.filter((nonBotMember) => nonBotMember.settings.levelingSettings.optIn);
 		await optedInMembers.sort((a, b) => (a.stats.levelingStats.level < b.stats.levelingStats.level || (a.stats.levelingStats.level === b.stats.levelingStats.level && a.stats.levelingStats.xp < b.stats.levelingStats.xp)) ? 1 : -1);
 
