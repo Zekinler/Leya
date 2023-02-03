@@ -114,8 +114,10 @@ module.exports = {
 			.then(async (projectInfo) => {
 				if (projectInfo.code === 'NotFound') return;
 
-				const projectDescription = projectInfo.description.trim().length > 0 ? projectInfo.description.trim() : 'No description available';
-				const projectInstructions = projectInfo.instructions.trim().length > 0 ? projectInfo.instructions.trim() : 'No instructions available';
+				let projectDescription = projectInfo.description.trim().length > 0 ? projectInfo.description.trim() : 'No description available';
+				if (projectDescription.length > 300) projectDescription = projectDescription.substring(0, 300).trim() + '...';
+				let projectInstructions = projectInfo.instructions.trim().length > 0 ? projectInfo.instructions.trim() : 'No instructions available';
+				if (projectInstructions.length > 300) projectInstructions = projectInstructions.substring(0, 300).trim() + '...';
 
 				const projectEmbed = new EmbedBuilder()
 					.setColor(0x0099FF)
@@ -157,8 +159,10 @@ module.exports = {
 			.then(async (levelsMember) => {
 				if (levelsMember.code === 'NotFound') return;
 
-				const userBio = levelsMember.profile.bio.trim().length > 0 ? levelsMember.profile.bio.trim() : 'No about me available';
-				const userStatus = levelsMember.profile.status.trim().length > 0 ? levelsMember.profile.status.trim() : 'No what I\'m working on available';
+				let userBio = levelsMember.profile.bio.trim().length > 0 ? levelsMember.profile.bio.trim() : 'No about me available';
+				if (userBio.length > 300) userBio = userBio.substring(0, 300).trim() + '...';
+				let userStatus = levelsMember.profile.status.trim().length > 0 ? levelsMember.profile.status.trim() : 'No what I\'m working on available';
+				if (userStatus.length > 300) userStatus = userStatus.substring(0, 300).trim() + '...';
 
 				const userEmbed = new EmbedBuilder()
 					.setColor(0x0099FF)
