@@ -1,16 +1,11 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { ContextMenuCommandBuilder, ApplicationCommandType } = require('discord.js');
 const { HandleLevelRewards } = require('../../leveling.js');
 const { GetDatabaseGuilds } = require('../../database.js');
 
 module.exports = {
-	data: new SlashCommandBuilder()
-		.setName('resetmemberlevel')
-		.setDescription('Reset the level and xp of a member')
-		.addUserOption(option =>
-			option
-				.setName('target')
-				.setDescription('Member to reset')
-				.setRequired(true)),
+	data: new ContextMenuCommandBuilder()
+		.setName('Reset Level')
+		.setType(ApplicationCommandType.User),
 
 	async execute(interaction, db) {
 		if (!interaction.memberPermissions.has(['MANAGE_SERVER', 'ADMINISTRATOR'])) {
@@ -18,7 +13,7 @@ module.exports = {
 			return;
 		}
 
-		if (interaction.options.getUser('target').bot) {
+		if (interaction.targetUser.bot) {
 			await interaction.reply({ content: 'Bots don\'t have a level', ephemeral: true });
 			return;
 		}
@@ -31,7 +26,7 @@ module.exports = {
 			return;
 		}
 
-		const databaseMember = databaseGuilds.get(interaction.guildId).members.get(interaction.options.getUser('target').id);
+		const databaseMember = databaseGuilds.get(interaction.guildId).members.get(interaction.targetMember.id);
 
 		databaseMember.stats.levelingStats = {
 			level: 0,
@@ -48,6 +43,6 @@ module.exports = {
 		databaseGuilds.set(interaction.guildId, databaseGuild);
 		await db.set('guilds', databaseGuilds);
 
-		await interaction.reply({ content: `Successfully reset the level and xp of ${interaction.options.getUser('target').username}`, ephemeral: true });
+		await interaction.reply({ content: `Successfully reset the level and xp of ${interaction.targetUser.username}`, ephemeral: true });
 	},
 };

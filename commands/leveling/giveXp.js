@@ -57,12 +57,14 @@ module.exports = {
 			if (guildLevelingSettings.levelUpMessageChannel === null) {
 				const levelUpMessageChannel = await interaction.guild.channels.fetch(databaseMember.stats.lastMessageSentChannelId);
 
+				let sentMessage;
 				if (levelUpMessageChannel.send !== undefined) {
-					await levelUpMessageChannel.send(`Congrats, <@${user.id}>, you've leveled-${memberLevelingStats.level > oldLevel ? 'up' : 'down'} to level ${memberLevelingStats.level}!`);
+					sentMessage = await levelUpMessageChannel.send(`Congrats, <@${user.id}>, you've leveled-${memberLevelingStats.level > oldLevel ? 'up' : 'down'} to level ${memberLevelingStats.level}!`);
 				}
 				else {
-					interaction.channel.send(`Congrats, <@${user.id}>, you've leveled-${memberLevelingStats.level > oldLevel ? 'up' : 'down'} to level ${memberLevelingStats.level}!`);
+					sentMessage = await interaction.channel.send(`Congrats, <@${user.id}>, you've leveled-${memberLevelingStats.level > oldLevel ? 'up' : 'down'} to level ${memberLevelingStats.level}!`);
 				}
+				setTimeout(async () => await sentMessage.delete(), 3000);
 			}
 			else {
 				const levelUpMessageChannel = await interaction.guild.channels.fetch(guildLevelingSettings.levelUpMessageChannel);
@@ -74,6 +76,8 @@ module.exports = {
 		databaseGuilds.get(interaction.guildId).members.set(member.id, databaseMember);
 		await db.set('guilds', databaseGuilds);
 
-		interaction.options.getInteger('amount') > 0 ? await interaction.reply(`Successfully gave ${interaction.options.getInteger('amount')} xp to ${user.username}`) : await interaction.reply(`Successfully took ${-interaction.options.getInteger('amount')} xp from ${user.username}`);
+		const content = interaction.options.getInteger('amount') > 0 ? `Successfully gave ${interaction.options.getInteger('amount')} XP to ${user.username}` : `Successfully took ${-interaction.options.getInteger('amount')} XP from ${user.username}`;
+
+		await interaction.reply({ content: content, ephemeral: true });
 	},
 };

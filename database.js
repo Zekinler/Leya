@@ -1,6 +1,12 @@
 const { Collection } = require('discord.js');
 
+/**
+ * @brief Represents the bot data for a guild
+ */
 class DatabaseGuild {
+	/**
+	 * @param {*} guildId The id of the guild whose bot data it controls
+	 */
 	constructor(guildId) {
 		this.id = guildId;
 		this.members = new Collection();
@@ -19,7 +25,14 @@ class DatabaseGuild {
 	}
 }
 
+/**
+ * @brief Represents the bot data for a member
+ */
 class DatabaseMember {
+	/**
+	 * @param {*} userId	The id of the member whose bot data it controls
+	 * @param {*} bot		Whether or not this DatabaseMember is a Discord bot
+	 */
 	constructor(userId, bot = false) {
 		this.id = userId;
 		this.bot = bot;
@@ -40,6 +53,12 @@ class DatabaseMember {
 	}
 }
 
+/**
+ * @brief				Initializes the database if starting anew, otherwise, updates the database with new guilds and members
+ *
+ * @param {*} db		The database to work with
+ * @param {*} client	The discord.js client to get data from
+ */
 async function InitDatabase(db, client) {
 	let databaseGuilds = new Collection();
 
@@ -78,6 +97,12 @@ async function InitDatabase(db, client) {
 	await db.set('guilds', databaseGuilds);
 }
 
+/**
+ * @brief			Gets the guilds collection from a database and converts it from an array to a discord.js collection
+ *
+ * @param {*} db	The database to get the guilds collection from
+ * @returns			Collection<DatabaseGuild>
+ */
 async function GetDatabaseGuilds(db) {
 	const guildsArray = await db.get('guilds');
 

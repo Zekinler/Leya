@@ -1,5 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
-const { HandleLevelRewards } = require('../../leveling.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { GetDatabaseGuilds } = require('../../database.js');
 
 module.exports = {
@@ -21,29 +20,18 @@ module.exports = {
 			return;
 		}
 
-		const databaseMembers = databaseGuilds.get(interaction.guildId).members;
+		const row = new ActionRowBuilder()
+			.addComponents(
+				new ButtonBuilder()
+					.setCustomId('resetserverlevelconfirmed')
+					.setLabel('Confirm')
+					.setStyle(ButtonStyle.Danger),
+				new ButtonBuilder()
+					.setCustomId('close')
+					.setLabel('Cancel')
+					.setStyle(ButtonStyle.Primary),
+			);
 
-		await interaction.deferReply();
-
-		for (const databaseMember of databaseMembers.values()) {
-			if (databaseMember.bot) continue;
-
-			databaseMember.stats.levelingStats = {
-				level: 0,
-				xp: 0,
-				spamBeginTimestamp: 0,
-				spamMessagesSent: 0,
-			};
-
-			const member = await interaction.guild.members.fetch(databaseMember.id);
-			await HandleLevelRewards(member, databaseMember.stats.levelingStats, guildLevelingSettings);
-		}
-
-		const databaseGuild = databaseGuilds.get(interaction.guildId);
-		databaseGuild.members = databaseMembers;
-		databaseGuilds.set(interaction.guildId, databaseGuild);
-		await db.set('guilds', databaseGuilds);
-
-		await interaction.editReply(`Successfully reset the level and xp of ${databaseMembers.size} members of server`);
+		await interaction.reply({ content: 'Are you sure you want to reset the levels and xp of all members on the server?', components: [row] });
 	},
 };

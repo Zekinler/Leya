@@ -1,11 +1,8 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { GetDatabaseGuilds } = require('../../database.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { GetDatabaseGuilds } = require('../../../database.js');
 
 module.exports = {
-	data: new SlashCommandBuilder()
-		.setName('levelrewards')
-		.setDescription('Configure the level rewards, they reward a member with roles when they reach certain levels'),
-
+	customId: 'mainlevelrewards',
 	async execute(interaction, db, client) {
 		if (!interaction.memberPermissions.has(['MANAGE_SERVER', 'ADMINISTRATOR'])) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
@@ -65,12 +62,12 @@ module.exports = {
 						.setStyle(ButtonStyle.Secondary),
 				);
 
-			await interaction.reply({ embeds: [embed], components: [row] });
+			await interaction.update({ embeds: [embed], components: [row] });
 		}
 		else {
 			embed.setDescription('The leveling system is disabled');
 
-			await interaction.reply({ embeds: [embed] });
+			await interaction.update({ embeds: [embed], components: [] });
 		}
 	},
 };

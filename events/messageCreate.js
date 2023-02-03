@@ -4,12 +4,27 @@ const { GetDatabaseGuilds } = require('../database.js');
 
 module.exports = {
 	name: Events.MessageCreate,
-	async execute(message, db) {
-		await this.leveling(db, message);
-
+	async execute(message, db, client) {
 		if (message.content.includes('https://scratch.mit.edu/projects/')) await this.getScratchProject(message);
 		if (message.content.includes('https://scratch.mit.edu/users/')) await this.getScratchUser(message);
 		if (message.content.includes('https://scratch.mit.edu/studios/')) await this.getScratchStudio(message);
+
+		let doLeveling = true;
+
+		for (let i = 0; i < client.messageInputHandlers.length; i++) {
+			const handler = client.messageInputHandlers[i];
+
+			if (handler.memberId !== message.member.id || handler.channelId !== message.channelId || handler.guildId !== message.guildId) continue;
+
+			const result = await handler.handle(message);
+
+			if (result === -1 || result === 1) {
+				doLeveling = false;
+			}
+			if (result === -2 || result === 1) client.messageInputHandlers.splice(i, 1);
+		}
+
+		if (doLeveling) await this.leveling(db, message);
 	},
 
 	async leveling(db, message) {
@@ -37,7 +52,8 @@ module.exports = {
 
 		if (await GiveXP(db, guildLevelingSettings.xpRate, message.member, memberLevelingStats, guildLevelingSettings)) {
 			if (guildLevelingSettings.levelUpMessageChannel === null) {
-				await message.reply(`Congrats, you've leveled-${memberLevelingStats.level > oldLevel ? 'up' : 'down'} to level ${memberLevelingStats.level}!`);
+				const sentMessage = await message.reply(`Congrats, you've leveled-${memberLevelingStats.level > oldLevel ? 'up' : 'down'} to level ${memberLevelingStats.level}!`);
+				setTimeout(async () => { await sentMessage.delete(); }, 3000);
 			}
 			else {
 				const levelUpMessageChannel = await message.guild.channels.fetch(guildLevelingSettings.levelUpMessageChannel);

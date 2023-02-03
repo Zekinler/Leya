@@ -20,11 +20,11 @@ module.exports = {
 
 		for (let i = 0; i < optedInMembers.length; i++) {
 			if (optedInMembers[i].id === interaction.member.id) {
-				leaderboard += `${i + 1}. ${interaction.user.username} - Level: ${optedInMembers[i].stats.levelingStats.level}, XP: ${optedInMembers[i].stats.levelingStats.xp}\n`;
+				leaderboard += `${i + 1}. ${interaction.user.username} - Level: ${optedInMembers[i].stats.levelingStats.level} - XP: ${optedInMembers[i].stats.levelingStats.xp}\n`;
 			}
 			else {
 				const fetchedMember = await interaction.guild.members.fetch(optedInMembers[i].id);
-				leaderboard += `${i + 1}. ${fetchedMember.user.username} - Level: ${optedInMembers[i].stats.levelingStats.level}, XP: ${optedInMembers[i].stats.levelingStats.xp}\n`;
+				leaderboard += `${i + 1}. ${fetchedMember.user.username} - Level: ${optedInMembers[i].stats.levelingStats.level} - XP: ${optedInMembers[i].stats.levelingStats.xp}\n`;
 			}
 		}
 
