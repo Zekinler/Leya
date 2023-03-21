@@ -196,7 +196,6 @@ module.exports = {
 
 										await mainInteraction.delete();
 										await interaction.followUp({ embeds: [embed], components: [row] });
-										await interaction.followUp({ content: 'Successfully set all roles\' stackability', ephemeral: true });
 										return;
 									}
 
