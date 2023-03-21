@@ -41,6 +41,8 @@ module.exports = {
 		if (!databaseMember.settings.levelingSettings.optIn) return;
 
 		if (await this.checkForSpam(memberLevelingStats, message.createdTimestamp)) {
+			console.log(`Spam detected from user id: ${databaseMember.id}`);
+
 			databaseMember.stats.levelingStats = memberLevelingStats;
 			databaseGuilds.get(message.guildId).members.set(message.member.id, databaseMember);
 			await db.set('guilds', databaseGuilds);
@@ -67,18 +69,18 @@ module.exports = {
 	},
 
 	async checkForSpam(memberLevelingStats, messageCreatedTimestamp) {
-		if (memberLevelingStats.spamMessagesSent >= 5) {
-			if (Date.now() - memberLevelingStats.spamBeginTimestamp <= 20000) {
+		if (memberLevelingStats.spamMessagesSent >= 3) {
+			if (Date.now() - memberLevelingStats.spamBeginTimestamp <= 10000) {
 				return true;
 			}
 			else {
-				memberLevelingStats.spamMessagesSent = 0;
+				memberLevelingStats.spamBeginTimestamp = messageCreatedTimestamp;
 
 				return false;
 			}
 		}
 
-		if (Date.now() - memberLevelingStats.spamBeginTimestamp <= 200) {
+		if (Date.now() - memberLevelingStats.spamBeginTimestamp <= 600) {
 			memberLevelingStats.spamMessagesSent++;
 		}
 		else {
@@ -87,7 +89,7 @@ module.exports = {
 
 		memberLevelingStats.spamBeginTimestamp = messageCreatedTimestamp;
 
-		if (memberLevelingStats.spamMessagesSent >= 5) {
+		if (memberLevelingStats.spamMessagesSent >= 3) {
 			return true;
 		}
 	},
