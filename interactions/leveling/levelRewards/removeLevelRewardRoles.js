@@ -100,9 +100,9 @@ module.exports = {
 								let rolesRemoved = 0;
 
 								for (const role of input) {
-									const roleRewardIndex = levelReward.roles.find(roleReward => roleReward.id === role.id);
+									const roleRewardIndex = levelReward.roles.findIndex(roleReward => roleReward.id === role.id);
 
-									if (roleRewardIndex !== undefined) {
+									if (roleRewardIndex !== -1) {
 										levelReward.roles.splice(roleRewardIndex, 1);
 										rolesRemoved++;
 									}
