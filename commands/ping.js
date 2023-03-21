@@ -3,7 +3,7 @@ const { SlashCommandBuilder } = require('discord.js');
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('ping')
-		.setDescription('Test Zeke Bot\'s latency'),
+		.setDescription('Test Leya\'s latency'),
 
 	async execute(interaction) {
 		const sent = await interaction.reply({ content: 'Pinging...', fetchReply: true, ephemeral: true });
