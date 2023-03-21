@@ -38,7 +38,7 @@ module.exports = {
 
 					rolesString = rolesString.substring(0, rolesString.length - 2);
 
-					embed.addFields({ name: `Level: ${levelReward.level}`, value: `Roles: ${rolesString}` });
+					embed.addFields({ name: `Level ${levelReward.level} Roles:`, value: `${rolesString}` });
 				}
 			}
 			else {
