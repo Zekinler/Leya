@@ -98,7 +98,7 @@ module.exports = {
 
 					const levelRewardIndex = guildLevelingSettings.levelRewards.findIndex((levelReward) => levelReward.level === input);
 
-					if (levelRewardIndex !== undefined) {
+					if (levelRewardIndex !== -1) {
 						levelReward = guildLevelingSettings.levelRewards.splice(levelRewardIndex, 1)[0];
 						levelRewardExists = true;
 					}
@@ -117,7 +117,7 @@ module.exports = {
 								const rolesModifying = input;
 
 								for (const role of input) {
-									if (levelReward.roles.findIndex(roleReward => roleReward.id === role.id) === undefined) {
+									if (levelReward.roles.findIndex(roleReward => roleReward.id === role.id) === -1) {
 										levelReward.roles.push({ id: role.id, stackable: false });
 										rolesAddedCount++;
 									}

@@ -29,13 +29,13 @@ module.exports = {
 				for (const levelReward of guildLevelingSettings.levelRewards) {
 					let rolesString = '';
 
-					for (const roleId of levelReward.roleIds) {
-						rolesString += `<@&${roleId}>, `;
+					for (const role of levelReward.roles) {
+						rolesString += `<@&${role.id}>: ${role.stackable ? 'stacks with other roles' : 'doesn\'t stack with other roles'},\n`;
 					}
 
 					rolesString = rolesString.substring(0, rolesString.length - 2);
 
-					embed.addFields({ name: `Level: ${levelReward.level}`, value: `Roles: ${rolesString}, Stackable: ${levelReward.stackable}` });
+					embed.addFields({ name: `Level: ${levelReward.level}`, value: `Roles: ${rolesString}` });
 				}
 			}
 			else {
