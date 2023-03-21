@@ -67,29 +67,27 @@ module.exports = {
 	},
 
 	async checkForSpam(memberLevelingStats, messageCreatedTimestamp) {
-		if (memberLevelingStats.spamMessagesSent >= 3) {
+		if (memberLevelingStats.spamMessagesSent >= 5) {
 			if (Date.now() - memberLevelingStats.spamBeginTimestamp <= 20000) {
 				return true;
 			}
 			else {
 				memberLevelingStats.spamMessagesSent = 0;
-				memberLevelingStats.spamBeginTimestamp = 0;
 
 				return false;
 			}
 		}
 
-		if (Date.now() - memberLevelingStats.spamBeginTimestamp <= 10000) {
+		if (Date.now() - memberLevelingStats.spamBeginTimestamp <= 200) {
 			memberLevelingStats.spamMessagesSent++;
 		}
 		else {
 			memberLevelingStats.spamMessagesSent = 0;
-			memberLevelingStats.spamBeginTimestamp = messageCreatedTimestamp;
 		}
 
-		if (memberLevelingStats.spamMessagesSent >= 3) {
-			memberLevelingStats.spamBeginTimestamp = messageCreatedTimestamp;
+		memberLevelingStats.spamBeginTimestamp = messageCreatedTimestamp;
 
+		if (memberLevelingStats.spamMessagesSent >= 5) {
 			return true;
 		}
 	},
