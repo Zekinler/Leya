@@ -156,27 +156,27 @@ module.exports = {
 
 		await fetch(`https://api.scratch.mit.edu/users/${username}/`)
 			.then((response) => response.json())
-			.then(async (levelsMember) => {
-				if (levelsMember.code === 'NotFound') return;
+			.then(async (userInfo) => {
+				if (userInfo.code === 'NotFound') return;
 
-				let userBio = levelsMember.profile.bio.trim().length > 0 ? levelsMember.profile.bio.trim() : 'No about me available';
+				let userBio = userInfo.profile.bio.trim().length > 0 ? userInfo.profile.bio.trim() : 'No about me available';
 				if (userBio.length > 300) userBio = userBio.substring(0, 300).trim() + '...';
-				let userStatus = levelsMember.profile.status.trim().length > 0 ? levelsMember.profile.status.trim() : 'No what I\'m working on available';
+				let userStatus = userInfo.profile.status.trim().length > 0 ? userInfo.profile.status.trim() : 'No what I\'m working on available';
 				if (userStatus.length > 300) userStatus = userStatus.substring(0, 300).trim() + '...';
 
 				const userEmbed = new EmbedBuilder()
 					.setColor(0x0099FF)
 					.setTitle(username)
 					.setURL(`https://scratch.mit.edu/users/${username}/`)
-					.setAuthor({ name: username, iconURL: levelsMember.profile.images['90x90'], url: `https://scratch.mit.edu/users/${username}/` })
+					.setAuthor({ name: username, iconURL: userInfo.profile.images['90x90'], url: `https://scratch.mit.edu/users/${username}/` })
 					.setDescription(userBio)
-					.setThumbnail(levelsMember.profile.images['90x90'])
+					.setThumbnail(userInfo.profile.images['90x90'])
 					.addFields(
 						{ name: 'What I\'m working on:', value: userStatus },
-						{ name: 'Joined on:', value: `${levelsMember.history.joined.substring(0, 10)}` },
-						{ name: 'Country:', value: levelsMember.profile.country },
+						{ name: 'Joined on:', value: `${userInfo.history.joined.substring(0, 10)}` },
+						{ name: 'Country:', value: userInfo.profile.country },
 					);
-				if (levelsMember.scratchteam) userEmbed.addFields({ name: 'A Scratch Team Member', value: '\u200B' });
+				if (userInfo.scratchteam) userEmbed.addFields({ name: 'A Scratch Team Member', value: '\u200B' });
 
 				await message.reply({ embeds: [userEmbed] });
 			});

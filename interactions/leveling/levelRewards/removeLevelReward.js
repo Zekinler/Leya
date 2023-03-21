@@ -5,17 +5,13 @@ const { GetDatabaseGuilds } = require('../../../database.js');
 module.exports = {
 	customId: 'removelevelreward',
 	async execute(interaction, db, client) {
-		if (!interaction.memberPermissions.has(['MANAGE_SERVER', 'ADMINISTRATOR'])) {
+		if (!interaction.memberPermissions.has(['MANAGE_GUILD', 'ADMINISTRATOR'])) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
 
 		const levelInputRow = new ActionRowBuilder()
 			.addComponents(
-				new ButtonBuilder()
-					.setCustomId('removelevelrewardroles')
-					.setLabel('Remove a level reward\'s roles')
-					.setStyle(ButtonStyle.Danger),
 				new ButtonBuilder()
 					.setCustomId('mainlevelrewards')
 					.setLabel('Back')
@@ -43,29 +39,33 @@ module.exports = {
 			for (const levelReward of guildLevelingSettings.levelRewards) {
 				let rolesString = '';
 
-				for (const roleId of levelReward.roleIds) {
-					rolesString += `<@&${roleId}>, `;
+				for (const role of levelReward.roles) {
+					rolesString += `<@&${role.id}>: ${role.stackable ? 'stacks with other roles' : 'doesn\'t stack with other roles'},\n`;
 				}
 
 				rolesString = rolesString.substring(0, rolesString.length - 2);
 
-				embed.addFields({ name: `Level: ${levelReward.level}`, value: `Roles: ${rolesString}, Stackable: ${levelReward.stackable}` });
+				embed.addFields({ name: `Level: ${levelReward.level}`, value: `Roles: ${rolesString}` });
 			}
 
 			const row = new ActionRowBuilder()
 				.addComponents(
 					new ButtonBuilder()
 						.setCustomId('addlevelreward')
-						.setLabel('Add a level reward or add roles to an existing one')
+						.setLabel('Create, add roles to, or change roles\' stackability in a level reward')
 						.setStyle(ButtonStyle.Success),
 					new ButtonBuilder()
 						.setCustomId('removelevelreward')
-						.setLabel('Remove a level reward or remove roles from an existing one')
+						.setLabel('Delete a level reward')
+						.setStyle(ButtonStyle.Danger),
+					new ButtonBuilder()
+						.setCustomId('removelevelrewardroles')
+						.setLabel('Remove a level reward\'s roles')
 						.setStyle(ButtonStyle.Danger),
 					new ButtonBuilder()
 						.setCustomId('clearlevelrewards')
-						.setLabel('Clear Level Rewards')
-						.setStyle(ButtonStyle.Primary),
+						.setLabel('Delete all Level Rewards')
+						.setStyle(ButtonStyle.Danger),
 					new ButtonBuilder()
 						.setCustomId('close')
 						.setLabel('Close')
@@ -111,13 +111,13 @@ module.exports = {
 						for (const levelReward of guildLevelingSettings.levelRewards) {
 							let rolesString = '';
 
-							for (const roleId of levelReward.roleIds) {
-								rolesString += `<@&${roleId}>, `;
+							for (const role of levelReward.roles) {
+								rolesString += `<@&${role.id}>: ${role.stackable ? 'stacks with other roles' : 'doesn\'t stack with other roles'},\n`;
 							}
 
 							rolesString = rolesString.substring(0, rolesString.length - 2);
 
-							embed.addFields({ name: `Level: ${levelReward.level}`, value: `Roles: ${rolesString}, Stackable: ${levelReward.stackable}` });
+							embed.addFields({ name: `Level: ${levelReward.level}`, value: `Roles: ${rolesString}` });
 						}
 					}
 					else {
@@ -128,16 +128,20 @@ module.exports = {
 						.addComponents(
 							new ButtonBuilder()
 								.setCustomId('addlevelreward')
-								.setLabel('Add a level reward or add roles to an existing one')
+								.setLabel('Create, add roles to, or change roles\' stackability in a level reward')
 								.setStyle(ButtonStyle.Success),
 							new ButtonBuilder()
 								.setCustomId('removelevelreward')
-								.setLabel('Remove a level reward or remove roles from an existing one')
+								.setLabel('Delete a level reward')
+								.setStyle(ButtonStyle.Danger),
+							new ButtonBuilder()
+								.setCustomId('removelevelrewardroles')
+								.setLabel('Remove a level reward\'s roles')
 								.setStyle(ButtonStyle.Danger),
 							new ButtonBuilder()
 								.setCustomId('clearlevelrewards')
-								.setLabel('Clear Level Rewards')
-								.setStyle(ButtonStyle.Primary),
+								.setLabel('Delete all Level Rewards')
+								.setStyle(ButtonStyle.Danger),
 							new ButtonBuilder()
 								.setCustomId('close')
 								.setLabel('Close')

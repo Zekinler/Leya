@@ -72,6 +72,10 @@ async function InitDatabase(db, client) {
 
 	const oAuth2Guilds = await client.guilds.fetch();
 
+	for (const databaseGuild of databaseGuilds.values()) {
+		if (!oAuth2Guilds.has(databaseGuild.id)) databaseGuilds.delete(databaseGuild.id);
+	}
+
 	for (const oAuth2Guild of oAuth2Guilds.values()) {
 		const guild = await oAuth2Guild.fetch();
 
@@ -83,6 +87,10 @@ async function InitDatabase(db, client) {
 		const databaseGuild = databaseGuilds.get(guild.id);
 
 		const members = await guild.members.fetch({ force: true });
+
+		for (const databaseMember of databaseGuild.members.values()) {
+			if (!members.has(databaseMember.id)) databaseGuild.members.delete(databaseMember.id);
+		}
 
 		for (const member of members.values()) {
 			if (!databaseGuild.members.has(member.id)) {

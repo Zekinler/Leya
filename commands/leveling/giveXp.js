@@ -17,7 +17,7 @@ module.exports = {
 				.setDescription('The member to give to/take from (leave blank to target yourself)')),
 
 	async execute(interaction, db) {
-		if (!interaction.memberPermissions.has(['MANAGE_SERVER', 'ADMINISTRATOR'])) {
+		if (!interaction.memberPermissions.has(['MANAGE_GUILD', 'ADMINISTRATOR'])) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}

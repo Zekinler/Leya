@@ -1,10 +1,10 @@
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { GetDatabaseGuilds } = require('../../../database.js');
 
 module.exports = {
 	customId: 'clearlevelrewards',
 	async execute(interaction, db, client) {
-		if (!interaction.memberPermissions.has(['MANAGE_SERVER', 'ADMINISTRATOR'])) {
+		if (!interaction.memberPermissions.has(['MANAGE_GUILD', 'ADMINISTRATOR'])) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
@@ -26,6 +26,30 @@ module.exports = {
 			.setThumbnail(`https://cdn.discordapp.com/icons/${interaction.guild.id}/${interaction.guild.icon}`)
 			.setDescription('There are no level rewards for this server');
 
-		await interaction.update({ embeds: [embed] });
+		const row = new ActionRowBuilder()
+			.addComponents(
+				new ButtonBuilder()
+					.setCustomId('addlevelreward')
+					.setLabel('Create, add roles to, or change roles\' stackability in a level reward')
+					.setStyle(ButtonStyle.Success),
+				new ButtonBuilder()
+					.setCustomId('removelevelreward')
+					.setLabel('Delete a level reward')
+					.setStyle(ButtonStyle.Danger),
+				new ButtonBuilder()
+					.setCustomId('removelevelrewardroles')
+					.setLabel('Remove a level reward\'s roles')
+					.setStyle(ButtonStyle.Danger),
+				new ButtonBuilder()
+					.setCustomId('clearlevelrewards')
+					.setLabel('Delete all Level Rewards')
+					.setStyle(ButtonStyle.Danger),
+				new ButtonBuilder()
+					.setCustomId('close')
+					.setLabel('Close')
+					.setStyle(ButtonStyle.Secondary),
+			);
+
+		await interaction.update({ embeds: [embed], components: [row] });
 	},
 };

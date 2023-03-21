@@ -4,13 +4,11 @@
 class LevelReward {
 	/**
 	 * @param {*} level		The level that must be reached to earn this level reward
-	 * @param {*} roleIds	The ids of the roles that this level rewards gives
-	 * @param {*} stackable	Whether or not the roles of this level rewards can stack with higher level rewards
+	 * @param {*} roles		The roles that this level rewards gives, is an array of elements with the properties, id, and stackable
 	 */
-	constructor(level, roleIds = [], stackable = false) {
+	constructor(level, roles = []) {
 		this.level = level;
-		this.roleIds = roleIds;
-		this.stackable = stackable;
+		this.roles = roles;
 	}
 }
 
@@ -77,18 +75,23 @@ async function HandleLevelRewards(member, memberLevelingStats, guildLevelingSett
 
 	for (const levelReward of guildLevelingSettings.levelRewards) {
 		if (memberLevelingStats.level >= levelReward.level && levelReward.level > highestLevel) {
-			highestRoles = levelReward.roleIds;
+			highestRoles = levelReward.roles.map(role => role.id);
 			highestLevel = levelReward.level;
 		}
-		else if (memberLevelingStats.level >= levelReward.level && levelReward.stackable) {
-			stackingRoles = stackingRoles.concat(levelReward.roleIds);
+		else if (memberLevelingStats.level >= levelReward.level) {
+			for (const role of levelReward.roles) {
+				if (role.stackable) {
+					stackingRoles = stackingRoles.concat(role.id);
+				}
+				else if (member.roles.cache.has(role.id) && !role.stackable) {
+					rolesToRemove.push(role.id);
+				}
+			}
 		}
 		else {
-			for (const roleId of levelReward.roleIds) {
-				if (member.roles.cache.has(roleId)) {
-					if (memberLevelingStats.level < levelReward.level || (memberLevelingStats.level >= levelReward.level && !levelReward.stackable)) {
-						rolesToRemove.push(roleId);
-					}
+			for (const role of levelReward.roles) {
+				if (member.roles.cache.has(role.id)) {
+					rolesToRemove.push(role.id);
 				}
 			}
 		}
@@ -103,7 +106,7 @@ async function HandleLevelRewards(member, memberLevelingStats, guildLevelingSett
 	}
 
 	if (stackingRoles.length > 0) {
-		await member.roles.add(stackingRoles, `The member's level is ${memberLevelingStats.level}`);
+		await member.roles.add(stackingRoles, `The member's level is ${memberLevelingStats.level} and this is a stackable role`);
 	}
 }
 

@@ -4,7 +4,7 @@ const { GetDatabaseGuilds } = require('../../../database.js');
 module.exports = {
 	customId: 'mainlevelrewards',
 	async execute(interaction, db, client) {
-		if (!interaction.memberPermissions.has(['MANAGE_SERVER', 'ADMINISTRATOR'])) {
+		if (!interaction.memberPermissions.has(['MANAGE_GUILD', 'ADMINISTRATOR'])) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
@@ -46,16 +46,20 @@ module.exports = {
 				.addComponents(
 					new ButtonBuilder()
 						.setCustomId('addlevelreward')
-						.setLabel('Add a level reward or add roles to an existing one')
+						.setLabel('Create, add roles to, or change roles\' stackability in a level reward')
 						.setStyle(ButtonStyle.Success),
 					new ButtonBuilder()
 						.setCustomId('removelevelreward')
-						.setLabel('Remove a level reward or remove roles from an existing one')
+						.setLabel('Delete a level reward')
+						.setStyle(ButtonStyle.Danger),
+					new ButtonBuilder()
+						.setCustomId('removelevelrewardroles')
+						.setLabel('Remove a level reward\'s roles')
 						.setStyle(ButtonStyle.Danger),
 					new ButtonBuilder()
 						.setCustomId('clearlevelrewards')
-						.setLabel('Clear Level Rewards')
-						.setStyle(ButtonStyle.Primary),
+						.setLabel('Delete all Level Rewards')
+						.setStyle(ButtonStyle.Danger),
 					new ButtonBuilder()
 						.setCustomId('close')
 						.setLabel('Close')
@@ -67,7 +71,7 @@ module.exports = {
 		else {
 			embed.setDescription('The leveling system is disabled');
 
-			await interaction.update({ embeds: [embed], components: [] });
+			await interaction.update({ embeds: [embed] });
 		}
 	},
 };
