@@ -70,7 +70,7 @@ module.exports = {
 
 	async checkForSpam(memberLevelingStats, messageCreatedTimestamp) {
 		if (memberLevelingStats.spamMessagesSent >= 3) {
-			if (Date.now() - memberLevelingStats.spamBeginTimestamp <= 10000) {
+			if (messageCreatedTimestamp - memberLevelingStats.spamBeginTimestamp <= 10000) {
 				return true;
 			}
 			else {
@@ -80,7 +80,7 @@ module.exports = {
 			}
 		}
 
-		if (Date.now() - memberLevelingStats.spamBeginTimestamp <= 600) {
+		if (messageCreatedTimestamp - memberLevelingStats.spamBeginTimestamp <= 500) {
 			memberLevelingStats.spamMessagesSent++;
 		}
 		else {
