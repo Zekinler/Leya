@@ -113,20 +113,16 @@ module.exports = {
 						new MessageInputHandler(interaction.member.id, interaction.channelId, interaction.guildId,
 							MessageInputType.Roles, {},
 							async (input) => {
-								let rolesAddedCount = 0;
 								const rolesModifying = input;
 
 								for (const role of input) {
 									if (levelReward.roles.findIndex(roleReward => roleReward.id === role.id) === -1) {
 										levelReward.roles.push({ id: role.id, stackable: false });
-										rolesAddedCount++;
 									}
 									else {
 										await interaction.followUp({ content: `This level reward already has the role <@&${role.id}>, changing stackability`, ephemeral: true });
 									}
 								}
-
-								await interaction.followUp({ content: `Successfully added ${rolesAddedCount} roles to the level reward`, ephemeral: true });
 
 								let roleIndex = 0;
 
