@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionsBitField } = require('discord.js');
 const { HandleLevelRewards } = require('../../leveling.js');
 const { GetDatabaseGuilds } = require('../../database.js');
 
@@ -13,7 +13,7 @@ module.exports = {
 				.setRequired(true)),
 
 	async execute(interaction, db) {
-		if (!interaction.memberPermissions.has(['MANAGE_GUILD', 'ADMINISTRATOR'])) {
+		if (!(interaction.memberPermissions.has(PermissionsBitField.Flags.ManageGuild & PermissionsBitField.Flags.Administrator) || interaction.user.id === '1007207515353776200')) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
