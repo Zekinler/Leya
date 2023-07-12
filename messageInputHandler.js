@@ -1,4 +1,4 @@
-const { ChannelType, PermissionsBitField } = require('discord.js');
+const { ChannelType } = require('discord.js');
 
 /**
  * @brief A constant that defines all input types
@@ -328,14 +328,15 @@ class MessageInputHandler {
 					}
 					for (let j = 0; j < this.typeOptions.permissionsNeeded.length; j++) {
 						if (!message.guild.members.me.permissionsIn(input[i].id).has(this.typeOptions.permissionsNeeded[j])) {
+							const numberString = (i + 1).toString();
 							let ordinal = '';
-							if ((i + 1).toString().substring(-1) === 1) ordinal = 'st';
-							if ((i + 1).toString().substring(-1) === 2) ordinal = 'nd';
-							if ((i + 1).toString().substring(-1) === 3) ordinal = 'rd';
-							if ((i + 1).toString().substring(-1) > 3) ordinal = 'th';
-							if ((i + 1).toString().length > 1 && (i + 1).toString().substring(-2) > 9 && (i + 1).toString().substring(-2) < 20) ordinal = 'th';
+							if (numberString.substring(-1) === '1') ordinal = 'st';
+							if (numberString.substring(-1) === '2') ordinal = 'nd';
+							if (numberString.substring(-1) === '3') ordinal = 'rd';
+							if (numberString.substring(-1) > 3) ordinal = 'th';
+							if (numberString.length > 1 && numberString.substring(-2) > 9 && numberString.substring(-2) < 20) ordinal = 'th';
 
-							const sentMessage = await message.reply(`I'm missing the required permission ${PermissionsBitField.Flags[this.typeOptions.permissionsNeeded[j]]} in the ${i + 1}${ordinal} channel you mentioned`);
+							const sentMessage = await message.reply(`I'm missing the required permission ${this.typeOptions.permissionsNeeded[j]} in the ${i + 1}${ordinal} channel you mentioned`);
 							setTimeout(async () => { await sentMessage.delete(); }, 3000);
 
 							try {

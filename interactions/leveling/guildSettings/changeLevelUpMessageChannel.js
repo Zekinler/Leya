@@ -109,8 +109,9 @@ module.exports = {
 						)
 						.setThumbnail(`https://cdn.discordapp.com/icons/${interaction.guild.id}/${interaction.guild.icon}`);
 
-					const rowA = new ActionRowBuilder()
-						.addComponents(
+					const rowA = new ActionRowBuilder();
+					if (guildLevelingSettings.levelUpMessageChannel !== null) {
+						rowA.addComponents(
 							new ButtonBuilder()
 								.setCustomId('changexprate')
 								.setLabel('Change XP Rate')
@@ -132,6 +133,27 @@ module.exports = {
 								.setLabel('Remove Level-Up Message Channel')
 								.setStyle(ButtonStyle.Primary),
 						);
+					}
+					else {
+						rowA.addComponents(
+							new ButtonBuilder()
+								.setCustomId('changexprate')
+								.setLabel('Change XP Rate')
+								.setStyle(ButtonStyle.Primary),
+							new ButtonBuilder()
+								.setCustomId('changelevelupthreshold')
+								.setLabel('Change Level-Up Threshold')
+								.setStyle(ButtonStyle.Primary),
+							new ButtonBuilder()
+								.setCustomId('changelevelupscaling')
+								.setLabel('Change Level-Up Scaling')
+								.setStyle(ButtonStyle.Primary),
+							new ButtonBuilder()
+								.setCustomId('changelevelupmessagechannel')
+								.setLabel('Set Level-Up Message Channel')
+								.setStyle(ButtonStyle.Primary),
+						);
+					}
 
 					const rowB = new ActionRowBuilder()
 						.addComponents(

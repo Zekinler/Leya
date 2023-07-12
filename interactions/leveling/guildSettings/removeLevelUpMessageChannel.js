@@ -49,11 +49,7 @@ module.exports = {
 					.setStyle(ButtonStyle.Primary),
 				new ButtonBuilder()
 					.setCustomId('changelevelupmessagechannel')
-					.setLabel('Change Level-Up Message Channel')
-					.setStyle(ButtonStyle.Primary),
-				new ButtonBuilder()
-					.setCustomId('removelevelupmessagechannel')
-					.setLabel('Remove Level-Up Message Channel')
+					.setLabel('Set Level-Up Message Channel')
 					.setStyle(ButtonStyle.Primary),
 			);
 
