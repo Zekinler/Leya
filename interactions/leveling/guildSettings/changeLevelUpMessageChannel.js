@@ -28,7 +28,9 @@ module.exports = {
 					const databaseGuilds = await GetDatabaseGuilds(db);
 					const databaseGuild = databaseGuilds.get(interaction.guildId);
 
-					databaseGuild.settings.levelingSettings.levelUpMessageChannel = input.at(0).id;
+					if (interaction.guild.members.me.permissionsIn(input.at(0).id).has('SEND_MESSAGES')) {
+						databaseGuild.settings.levelingSettings.levelUpMessageChannel = input.at(0).id;
+					}
 					const guildLevelingSettings = databaseGuild.settings.levelingSettings;
 
 					databaseGuilds.set(interaction.guildId, databaseGuild);
@@ -87,7 +89,7 @@ module.exports = {
 
 					await interaction.deleteReply();
 					await interaction.followUp({ embeds: [embed], components: [rowA, rowB] });
-					await interaction.followUp({ content: 'Successfully changed Level-Up Message Channel', ephemeral: true });
+					await interaction.followUp({ content: interaction.guild.members.me.permissionsIn(input.at(0).id).has('SEND_MESSAGES') ? 'Successfully changed Level-Up Message Channel' : 'I don\'t have permission to send messages in that channel!', ephemeral: true });
 				},
 
 				async () => {
