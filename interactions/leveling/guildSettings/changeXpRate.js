@@ -1,11 +1,11 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, PermissionsBitField } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { MessageInputHandler, MessageInputType } = require('../../../messageInputHandler.js');
 const { GetDatabaseGuilds } = require('../../../database.js');
 
 module.exports = {
 	customId: 'changexprate',
 	async execute(interaction, db, client) {
-		if (!(interaction.memberPermissions.has(PermissionsBitField.Flags.ManageGuild & PermissionsBitField.Flags.Administrator) || interaction.user.id === '1007207515353776200')) {
+		if (!(interaction.memberPermissions.has(['ManageGuild', 'Administrator']) || interaction.user.id === '1007207515353776200')) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}

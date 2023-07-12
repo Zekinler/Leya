@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionsBitField } = require('discord.js');
+const { SlashCommandBuilder } = require('discord.js');
 const { GiveXP } = require('../../leveling.js');
 const { GetDatabaseGuilds } = require('../../database.js');
 
@@ -17,7 +17,7 @@ module.exports = {
 				.setDescription('The member to give to/take from (leave blank to target yourself)')),
 
 	async execute(interaction, db) {
-		if (!(interaction.memberPermissions.has(PermissionsBitField.Flags.ManageGuild & PermissionsBitField.Flags.Administrator) || interaction.user.id === '1007207515353776200')) {
+		if (!(interaction.memberPermissions.has(['ManageGuild', 'Administrator']) || interaction.user.id === '1007207515353776200')) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}

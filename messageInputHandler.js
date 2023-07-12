@@ -21,7 +21,7 @@ class MessageInputHandler {
 	 * @param {*} memberId		The id of the member to get input from
 	 * @param {*} channelId		The id of the channel to limit the input to
 	 * @param {*} guildId		The id of the guild to limit the input to
-	 * @param {*} type			The type of input the command wants to receive
+	 * @param {*} type			The type of input you want to receive
 	 * @param {*} typeOptions	Options for the type
 	 * @param {*} callbackFn	The function that is called when the user makes a valid input; gets passed the input from the user
 	 * @param {*} timeoutFn		The function that is called when the user has taken too long to give an input

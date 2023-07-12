@@ -1,4 +1,4 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { MessageInputHandler, MessageInputType } = require('../../../messageInputHandler.js');
 const { GetDatabaseGuilds } = require('../../../database.js');
 const { LevelReward } = require('../../../leveling.js');
@@ -6,7 +6,7 @@ const { LevelReward } = require('../../../leveling.js');
 module.exports = {
 	customId: 'addlevelreward',
 	async execute(interaction, db, client) {
-		if (!(interaction.memberPermissions.has(PermissionsBitField.Flags.ManageGuild & PermissionsBitField.Flags.Administrator) || interaction.user.id === '1007207515353776200')) {
+		if (!(interaction.memberPermissions.has(['ManageGuild', 'Administrator']) || interaction.user.id === '1007207515353776200')) {
 			await interaction.reply({ content: 'You don\'t have permission to do this', ephemeral: true });
 			return;
 		}
