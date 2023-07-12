@@ -1,5 +1,5 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } = require('discord.js');
-const { GetDatabaseGuilds } = require('../../database.js');
+const { GetDatabaseGuilds } = require('../../../database.js');
 
 module.exports = {
 	customId: 'changelevelingsettings',
