@@ -23,14 +23,12 @@ module.exports = {
 
 		client.messageInputHandlers.push(
 			new MessageInputHandler(interaction.member.id, interaction.channelId, interaction.guildId,
-				MessageInputType.TextChannels, { maxMentions: 1 },
+				MessageInputType.TextChannels, { maxMentions: 1, permissionsNeeded: ['SendMessages'] },
 				async (input) => {
 					const databaseGuilds = await GetDatabaseGuilds(db);
 					const databaseGuild = databaseGuilds.get(interaction.guildId);
 
-					if (interaction.guild.members.me.permissionsIn(input.at(0).id).has(PermissionsBitField.Flags.SendMessages)) {
-						databaseGuild.settings.levelingSettings.levelUpMessageChannel = input.at(0).id;
-					}
+					databaseGuild.settings.levelingSettings.levelUpMessageChannel = input.at(0).id;
 					const guildLevelingSettings = databaseGuild.settings.levelingSettings;
 
 					databaseGuilds.set(interaction.guildId, databaseGuild);
@@ -89,7 +87,7 @@ module.exports = {
 
 					await interaction.deleteReply();
 					await interaction.followUp({ embeds: [embed], components: [rowA, rowB] });
-					await interaction.followUp({ content: interaction.guild.members.me.permissionsIn(input.at(0).id).has(PermissionsBitField.Flags.SendMessages) ? 'Successfully changed Level-Up Message Channel' : 'I don\'t have permission to send messages in that channel!', ephemeral: true });
+					await interaction.followUp({ content: 'Successfully changed Level-Up Message Channel', ephemeral: true });
 				},
 
 				async () => {
